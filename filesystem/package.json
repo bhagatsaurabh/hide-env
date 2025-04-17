@@ -6,6 +6,8 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "image:dev": "docker build -f dockerfile --target development -t hide-env-base-dev ..",
+    "image:prod": "docker build -f dockerfile --target production -t hide-env-base ..",
     "prebuild": "tsc -b",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
