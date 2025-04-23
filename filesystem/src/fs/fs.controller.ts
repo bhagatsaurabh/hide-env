@@ -9,11 +9,11 @@ export class FSController {
 
   @MessagePattern('fs:open')
   async fsOpen(@Payload() msg: Message<FSOpenRequest>) {
-    return await this.fsService.open(msg.meta.uid, msg.data.path);
+    return await this.fsService.open(msg.meta.uid, msg.payload.path);
   }
 
   @MessagePattern('fs:close')
   async fsClose(@Payload() msg: Message<FSCloseRequest>) {
-    return await this.fsService.close(msg.meta.uid, msg.data.path);
+    return await this.fsService.close(msg.meta.uid, msg.payload.path);
   }
 }

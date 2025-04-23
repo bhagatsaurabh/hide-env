@@ -5,7 +5,7 @@ export interface Message<T = any> {
     uid: string;
     route: string;
   };
-  data: T;
+  payload: T;
 }
 
 export type FSOpenRequest = {

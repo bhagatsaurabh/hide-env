@@ -8,6 +8,9 @@ services:
   node:
     container_name: node
     image: hide-env-node-dev
+    build:
+      context: .
+      target: development
     volumes:
       - ../../filesystem:/app/filesystem
       - /app/filesystem/node_modules
