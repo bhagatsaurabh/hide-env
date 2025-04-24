@@ -15,3 +15,11 @@ export type FSOpenRequest = {
 export type FSCloseRequest = {
   path: string;
 };
+
+export type FSSyncActions = 'add' | 'addDir' | 'unlink' | 'unlinkDir' | 'change';
+
+export type FSSync = {
+  uid: string;
+  path: string;
+  action: FSSyncActions;
+};
