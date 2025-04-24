@@ -8,16 +8,6 @@ async function bootstrap() {
   app.enableCors({ origin: process.env.CORS_ORIGIN || '*' });
   app.useGlobalFilters(new HttpExceptionFilter());
   app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.RMQ,
-    options: {
-      urls: [process.env.RMQ_URL!],
-      queue: 'default',
-      queueOptions: {
-        durable: false,
-      },
-    },
-  });
-  app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.REDIS,
     options: {
       host: process.env.REDIS_HOST!,

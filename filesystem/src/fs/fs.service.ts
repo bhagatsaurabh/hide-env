@@ -3,13 +3,12 @@ import { ClientProxy } from '@nestjs/microservices';
 import { FSWatcher, watch } from 'chokidar';
 import { promises as fs } from 'node:fs';
 import { join } from 'node:path';
+import { FSSync, FSSyncActions } from 'src/common/message';
+import { SocketMessage, SocketMessageType } from 'src/common/message/socket.message';
 
 @Injectable()
 export class FSService {
-  constructor(
-    @Inject('FILESYSTEM_SERVICE_REDIS') private redis: ClientProxy,
-    @Inject('FILESYSTEM_SERVICE_RMQ') private rmq: ClientProxy,
-  ) {}
+  constructor(@Inject('FILESYSTEM_SERVICE_REDIS') private redis: ClientProxy) {}
 
   root = '/home/devuser/workspace';
   watchers: Map<string, Map<string, FSWatcher>> = new Map();
@@ -49,20 +48,19 @@ export class FSService {
     newWatcher.on('error', (err) => {
       console.log(err);
     });
-    newWatcher.on('add', (wPath: string) => {
-      this.rmq.emit('fs:sync', { uid, path: wPath, action: 'add' });
+    newWatcher.on('add', (wPath: string) => this.sync(uid, wPath, 'add'));
+    newWatcher.on('addDir', (wPath: string) => this.sync(uid, wPath, 'addDir'));
+    newWatcher.on('unlink', (wPath: string) => this.sync(uid, wPath, 'unlink'));
+    newWatcher.on('unlinkDir', (wPath: string) => this.sync(uid, wPath, 'unlinkDir'));
+    newWatcher.on('change', (wPath: string) => this.sync(uid, wPath, 'change'));
+  }
+
+  sync(uid: string, path: string, action: FSSyncActions) {
+    const observable = this.redis.emit<any, SocketMessage<FSSync>>('socket.send', {
+      uid,
+      type: SocketMessageType.FILESYSTEM,
+      data: { uid, path, action },
     });
-    newWatcher.on('addDir', (wPath: string) => {
-      this.rmq.emit('fs:sync', { uid, path: wPath, action: 'addDir' });
-    });
-    newWatcher.on('unlink', (wPath: string) => {
-      this.rmq.emit('fs:sync', { uid, path: wPath, action: 'unlink' });
-    });
-    newWatcher.on('unlinkDir', (wPath: string) => {
-      this.rmq.emit('fs:sync', { uid, path: wPath, action: 'unlinkDir' });
-    });
-    newWatcher.on('change', (wPath: string) => {
-      this.rmq.emit('fs:sync', { uid, path: wPath, action: 'change' });
-    });
+    observable.subscribe({ complete: () => console.log('sent fssync via Redis') });
   }
 }
