@@ -56,11 +56,10 @@ export class FSService {
   }
 
   sync(uid: string, path: string, action: FSSyncActions) {
-    const observable = this.redis.emit<any, SocketMessage<FSSync>>('socket.send', {
+    this.redis.emit<any, SocketMessage<FSSync>>('socket.send', {
       uid,
       type: SocketMessageType.FILESYSTEM,
       data: { uid, path, action },
     });
-    observable.subscribe({ complete: () => console.log('sent fssync via Redis') });
   }
 }
