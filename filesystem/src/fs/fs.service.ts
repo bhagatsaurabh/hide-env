@@ -1,22 +1,25 @@
 import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { FSWatcher, watch } from 'chokidar';
-import { promises as fs } from 'node:fs';
+import { promises as fs, Stats } from 'node:fs';
 import { join } from 'node:path';
-import { FSSync, FSSyncActions } from 'src/common/message';
+import { FSEventType, FSEvent, FSRefinedEvent } from 'src/common/message';
 import { SocketMessage, SocketMessageType } from 'src/common/message/socket.message';
+import { debounce } from 'src/utils';
 
 @Injectable()
 export class FSService {
   constructor(@Inject('FILESYSTEM_SERVICE_REDIS') private redis: ClientProxy) {}
 
   root = '/home/devuser/workspace';
-  watchers: Map<string, Map<string, FSWatcher>> = new Map();
+  cache: EventCacheMap = new Map();
+  debounceTime = 150;
+  process = debounce((uid: string, cache: EventCache) => this._process(uid, cache), this.debounceTime);
 
   async open(uid: string, path: string) {
     path = this.root + path;
-    if (!this.watchers.has(uid)) {
-      this.watchers.set(uid, new Map());
+    if (!this.cache.has(uid)) {
+      this.cache.set(uid, { events: [], buffer: [], isProcessing: false, watchers: new Map() });
     }
     this.addWatch(uid, path);
 
@@ -34,32 +37,74 @@ export class FSService {
   }
   async close(uid: string, path: string) {
     path = this.root + path;
-    const watcher = this.watchers.get(uid)?.get(path);
+    const watcher = this.cache.get(uid)?.watchers.get(path);
     if (!watcher) return;
     await watcher.close();
   }
 
   addWatch(uid: string, path: string) {
-    const watchers = this.watchers.get(uid);
-    if (!watchers || watchers.has(path)) return;
-    const newWatcher = watch(path, { depth: 1, ignoreInitial: true });
-    watchers.set(path, newWatcher);
+    const cache = this.cache.get(uid);
+    if (!cache || cache.watchers.has(path)) return;
+    const newWatcher = watch(path, {
+      depth: 0,
+      ignoreInitial: true,
+      alwaysStat: true,
+    });
+    cache.watchers.set(path, newWatcher);
 
     newWatcher.on('error', (err) => {
       console.log(err);
     });
-    newWatcher.on('add', (wPath: string) => this.sync(uid, wPath, 'add'));
-    newWatcher.on('addDir', (wPath: string) => this.sync(uid, wPath, 'addDir'));
-    newWatcher.on('unlink', (wPath: string) => this.sync(uid, wPath, 'unlink'));
-    newWatcher.on('unlinkDir', (wPath: string) => this.sync(uid, wPath, 'unlinkDir'));
-    newWatcher.on('change', (wPath: string) => this.sync(uid, wPath, 'change'));
+    newWatcher.on('add', (wPath: string, stats?: Stats) => this.handleEvent(uid, wPath, 'add', stats));
+    newWatcher.on('addDir', (wPath: string, stats?: Stats) => this.handleEvent(uid, wPath, 'addDir', stats));
+    newWatcher.on('change', (wPath: string, stats?: Stats) => this.handleEvent(uid, wPath, 'change', stats));
+    newWatcher.on('unlink', (wPath: string, stats?: Stats) => this.handleEvent(uid, wPath, 'unlink', stats));
+    newWatcher.on('unlinkDir', (wPath: string, stats?: Stats) =>
+      this.handleEvent(uid, wPath, 'unlinkDir', stats),
+    );
   }
+  handleEvent(uid: string, path: string, type: FSEventType, stats?: Stats) {
+    console.log(path, type, stats);
+    const cache = this.cache.get(uid);
+    if (!cache) return;
 
-  sync(uid: string, path: string, action: FSSyncActions) {
-    this.redis.emit<any, SocketMessage<FSSync>>('socket.send', {
+    if (cache.isProcessing) {
+      cache.buffer.push({ type, stats, path, ts: performance.now() });
+    } else {
+      cache.events.push({ type, stats, path, ts: performance.now() });
+    }
+    this.process(uid, cache);
+  }
+  _process(uid: string, cache: EventCache) {
+    cache.isProcessing = true;
+    const refinedEvents = this.refineEvents(cache.events);
+    this.sync(uid, refinedEvents);
+    cache.events = cache.buffer;
+    cache.buffer = [];
+    cache.isProcessing = false;
+  }
+  refineEvents(events: FSEvent[]) {
+    void events;
+    const refinedEvents = [];
+
+    // TODO
+
+    return refinedEvents;
+  }
+  sync(uid: string, events: FSRefinedEvent[]) {
+    this.redis.emit<any, SocketMessage<FSRefinedEvent[]>>('socket.send', {
       uid,
       type: SocketMessageType.FILESYSTEM,
-      data: { uid, path, action },
+      data: events,
     });
   }
 }
+
+type EventCacheMap = Map<string, EventCache>;
+type EventCache = {
+  events: Array<FSEvent>;
+  buffer: Array<FSEvent>;
+  isProcessing: boolean;
+  watchers: Map<string, FSWatcher>;
+  timer?: NodeJS.Timeout;
+};

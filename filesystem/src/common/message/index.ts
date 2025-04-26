@@ -1,3 +1,5 @@
+import { Stats } from 'node:fs';
+
 export interface Message<T = any> {
   meta: {
     requestId: string;
@@ -16,10 +18,19 @@ export type FSCloseRequest = {
   path: string;
 };
 
-export type FSSyncActions = 'add' | 'addDir' | 'unlink' | 'unlinkDir' | 'change';
+export type FSEventType = 'add' | 'addDir' | 'unlink' | 'unlinkDir' | 'change';
+export type FSRefinedEventType = 'create' | 'delete' | 'move' | 'modify';
 
-export type FSSync = {
+export type FSEvent = {
+  path: string;
+  type: FSEventType;
+  stats?: Stats;
+  ts: number;
+};
+
+export type FSRefinedEvent = {
   uid: string;
   path: string;
-  action: FSSyncActions;
+  oldPath?: string;
+  type: FSRefinedEvent;
 };

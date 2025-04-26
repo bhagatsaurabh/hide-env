@@ -20,5 +20,6 @@ services:
       - RMQ_URL=amqp://rabbitmq:5672
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - EVENT_QUEUE_SIZE=100
     networks:
       - hide-network
