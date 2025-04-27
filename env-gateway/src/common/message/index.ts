@@ -34,3 +34,10 @@ export type FSRefinedEvent = {
   oldPath?: string;
   type: FSRefinedEvent;
 };
+
+export type FSExtEvent = {
+  uids: string[];
+  path: string;
+  action: 'create' | 'remove' | 'rename' | 'modify';
+  name: string;
+};

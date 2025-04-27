@@ -12,8 +12,10 @@ services:
       context: .
       target: development
     volumes:
+      - ../../env-gateway:/app/env-gateway
+      - /app/env-gateway/node_modules
       - ../../filesystem:/app/filesystem
-      - /app/filesystem/node_modules
+      - /app/filesystem/.build
     environment:
       - NODE_ENV=development
       - SERVICE_PORT=80
