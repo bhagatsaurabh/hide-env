@@ -32,21 +32,20 @@ func HandleWatchChannels(ctx context.Context, wm *services.WatchManager, redis *
 	defer pubsub.Close()
 
 	for msg := range pubsub.Channel() {
-		log.Println("Received add-watch ", msg.Payload)
 		switch msg.Channel {
 		case AddWatchChannel:
 			var req AddWatchRequest
 			if err := json.Unmarshal([]byte(msg.Payload), &req); err != nil {
-				log.Println("bad add-watch payload:", err)
+				log.Println("Parse error, add-watch payload:", err)
 				continue
 			}
 			if err := wm.AddWatch(req.Data.Uid, req.Data.Path); err != nil {
-				log.Println("failed to add watch:", err)
+				log.Println("Failed to add watch:", err)
 			}
 		case RemoveWatchChannel:
 			var req RemoveWatchRequest
 			if err := json.Unmarshal([]byte(msg.Payload), &req); err != nil {
-				log.Println("bad remove-watch payload:", err)
+				log.Println("Parse error, remove-watch payload:", err)
 				continue
 			}
 			wm.RemoveWatch(req.Data.Uid, req.Data.Path)

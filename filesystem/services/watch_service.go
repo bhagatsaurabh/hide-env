@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"path/filepath"
 	"sync"
 
 	"github.com/fsnotify/fsnotify"
@@ -11,11 +12,11 @@ import (
 )
 
 type WatchManager struct {
-	Watcher   *fsnotify.Watcher
-	Redis     *redis.Client
-	Mu        sync.Mutex
-	PathUsers map[string]map[string]struct{}
-	UserPaths map[string]map[string]struct{}
+	Watcher      *fsnotify.Watcher
+	Redis        *redis.Client
+	Mu           sync.Mutex
+	PathToUidMap map[string]map[string]bool
+	UidToPathMap map[string]map[string]bool
 }
 type WatchEvent struct {
 	Uids   []string `json:"uids"`
@@ -34,37 +35,35 @@ func NewWatchManager(redis *redis.Client) (*WatchManager, error) {
 		return nil, err
 	}
 	wm := &WatchManager{
-		Watcher:   watcher,
-		Redis:     redis,
-		PathUsers: make(map[string]map[string]struct{}),
-		UserPaths: make(map[string]map[string]struct{}),
+		Watcher:      watcher,
+		Redis:        redis,
+		PathToUidMap: make(map[string]map[string]bool),
+		UidToPathMap: make(map[string]map[string]bool),
 	}
 	return wm, nil
 }
 
 func (wm *WatchManager) AddWatch(uid, path string) error {
-	log.Println("Adding watch ", uid, path)
 	wm.Mu.Lock()
 	defer wm.Mu.Unlock()
 
-	if wm.PathUsers[path] == nil {
-		wm.PathUsers[path] = make(map[string]struct{})
+	if wm.PathToUidMap[path] == nil {
+		wm.PathToUidMap[path] = make(map[string]bool)
 	}
-	wm.PathUsers[path][uid] = struct{}{}
+	wm.PathToUidMap[path][uid] = true
 
-	if wm.UserPaths[uid] == nil {
-		wm.UserPaths[uid] = make(map[string]struct{})
+	if wm.UidToPathMap[uid] == nil {
+		wm.UidToPathMap[uid] = make(map[string]bool)
 	}
-	wm.UserPaths[uid][path] = struct{}{}
+	wm.UidToPathMap[uid][path] = true
 
-	if len(wm.PathUsers[path]) == 1 {
+	if len(wm.PathToUidMap[path]) == 1 {
 		err := wm.Watcher.Add(path)
 		if err != nil {
-			delete(wm.PathUsers, path)
-			delete(wm.UserPaths[uid], path)
+			delete(wm.PathToUidMap[path], uid)
+			delete(wm.UidToPathMap[uid], path)
 			return err
 		}
-		log.Printf("Started watching: %s\n", path)
 	}
 	return nil
 }
@@ -73,20 +72,42 @@ func (wm *WatchManager) RemoveWatch(uid, path string) {
 	wm.Mu.Lock()
 	defer wm.Mu.Unlock()
 
-	if users, ok := wm.PathUsers[path]; ok {
-		delete(users, uid)
-		if len(users) == 0 {
-			wm.Watcher.Remove(path)
-			delete(wm.PathUsers, path)
-			log.Printf("Stopped watching: %s\n", path)
+	pathsToRemove := []string{}
+	for watchedPath := range wm.PathToUidMap {
+		if isSubpath(path, watchedPath) {
+			pathsToRemove = append(pathsToRemove, watchedPath)
 		}
 	}
-	if paths, ok := wm.UserPaths[uid]; ok {
-		delete(paths, path)
-		if len(paths) == 0 {
-			delete(wm.UserPaths, uid)
+
+	for _, watchedPath := range pathsToRemove {
+		delete(wm.PathToUidMap[watchedPath], uid)
+		if len(wm.PathToUidMap[watchedPath]) == 0 {
+			if err := wm.Watcher.Remove(watchedPath); err != nil {
+				log.Println("Failed to remove watcher:", err)
+			}
+			delete(wm.PathToUidMap, watchedPath)
 		}
 	}
+
+	if userPaths, ok := wm.UidToPathMap[uid]; ok {
+		for p := range userPaths {
+			if isSubpath(path, p) {
+				delete(userPaths, p)
+			}
+		}
+		if len(userPaths) == 0 {
+			delete(wm.UidToPathMap, uid)
+		}
+	}
+}
+
+func isSubpath(parent, child string) bool {
+	rel, err := filepath.Rel(parent, child)
+	if err != nil {
+		return false
+	}
+	joined := filepath.Join(parent, rel)
+	return joined == child
 }
 
 func (wm *WatchManager) Start(ctx context.Context) {
@@ -95,10 +116,8 @@ func (wm *WatchManager) Start(ctx context.Context) {
 
 func (wm *WatchManager) handleEvents(ctx context.Context) {
 	for {
-		log.Println("handling...")
 		select {
 		case event, ok := <-wm.Watcher.Events:
-			log.Println("Got event", ok, event)
 			if !ok {
 				return
 			}
@@ -107,9 +126,8 @@ func (wm *WatchManager) handleEvents(ctx context.Context) {
 			if !ok {
 				return
 			}
-			log.Println("watcher error:", err)
+			log.Println("Watcher error:", err)
 		case <-ctx.Done():
-			log.Println("shutting down event handler")
 			return
 		}
 	}
@@ -122,7 +140,7 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 	dirPath := event.Name
 
 	uids := []string{}
-	if users, ok := wm.PathUsers[dirPath]; ok {
+	if users, ok := wm.PathToUidMap[dirPath]; ok {
 		for uid := range users {
 			uids = append(uids, uid)
 		}
@@ -138,7 +156,7 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 	} else if event.Op&fsnotify.Rename == fsnotify.Rename {
 		action = "rename"
 	} else if event.Op&fsnotify.Write == fsnotify.Write {
-		action = "modify"
+		action = "write"
 	}
 
 	evt := WatchEvent{
@@ -150,7 +168,7 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 
 	payload, err := json.Marshal(evt)
 	if err != nil {
-		log.Println("failed to marshal event:", err)
+		log.Println("Encode error: ", err)
 		return
 	}
 
