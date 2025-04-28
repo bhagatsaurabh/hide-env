@@ -19,7 +19,7 @@ export type FSCloseRequest = {
 };
 
 export type FSEventType = 'add' | 'addDir' | 'unlink' | 'unlinkDir' | 'change';
-export type FSRefinedEventType = 'create' | 'delete' | 'move' | 'modify';
+export type FSRefinedEventType = 'create' | 'remove' | 'rename' | 'write';
 
 export type FSEvent = {
   path: string;
@@ -29,15 +29,14 @@ export type FSEvent = {
 };
 
 export type FSRefinedEvent = {
-  uid: string;
   path: string;
-  oldPath?: string;
-  type: FSRefinedEvent;
+  action: FSRefinedEventType;
+  data: string;
 };
 
 export type FSExtEvent = {
   uids: string[];
   path: string;
-  action: 'create' | 'remove' | 'rename' | 'modify';
+  action: 'create' | 'remove' | 'rename' | 'write';
   name: string;
 };
