@@ -4,7 +4,7 @@ go 1.24.1
 
 require github.com/redis/go-redis/v9 v9.7.3
 
-require golang.org/x/sys v0.13.0 // indirect
+require golang.org/x/sys v0.32.0 // indirect
 
 require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect

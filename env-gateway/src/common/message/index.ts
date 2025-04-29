@@ -1,4 +1,4 @@
-import { Stats } from 'node:fs';
+import { SocketMessagePayload } from './socket.message';
 
 export interface Message<T = any> {
   meta: {
@@ -18,25 +18,31 @@ export type FSCloseRequest = {
   path: string;
 };
 
-export type FSEventType = 'add' | 'addDir' | 'unlink' | 'unlinkDir' | 'change';
-export type FSRefinedEventType = 'create' | 'remove' | 'rename' | 'write';
+export type FSEventType = 'create' | 'remove' | 'rename' | 'write';
 
 export type FSEvent = {
+  watchedPath: string;
   path: string;
-  type: FSEventType;
-  stats?: Stats;
-  ts: number;
+  oldPath?: string;
+  ino?: number;
+  action: FSEventType;
+  timestamp: number;
 };
-
-export type FSRefinedEvent = {
-  path: string;
-  action: FSRefinedEventType;
-  data: string;
-};
+export interface FSEventBatch extends SocketMessagePayload {
+  events: FSEvent[];
+}
 
 export type FSExtEvent = {
   uids: string[];
+  watchedPath: string;
   path: string;
-  action: 'create' | 'remove' | 'rename' | 'write';
-  name: string;
+  oldPath?: string;
+  ino?: number;
+  action: FSEventType;
+  timestamp: number;
 };
+
+export interface FSBlock extends SocketMessagePayload {
+  path: string;
+}
+export type FSResume = FSBlock;

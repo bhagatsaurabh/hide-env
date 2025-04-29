@@ -1,11 +1,18 @@
+//go:build linux
+
 package services
 
 import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"sync"
+	"syscall"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/redis/go-redis/v9"
@@ -19,10 +26,13 @@ type WatchManager struct {
 	UidToPathMap map[string]map[string]bool
 }
 type WatchEvent struct {
-	Uids   []string `json:"uids"`
-	Path   string   `json:"path"`
-	Action string   `json:"action"`
-	Name   string   `json:"name"`
+	Uids        []string `json:"uids"`
+	WatchedPath string   `json:"watchedPath"`
+	Action      string   `json:"action"`
+	Path        string   `json:"path"`
+	OldPath     *string  `json:"oldPath,omitempty"`
+	Timestamp   int64    `json:"timestamp"`
+	Ino         *uint64  `json:"ino,omitempty"`
 }
 
 const (
@@ -43,38 +53,42 @@ func NewWatchManager(redis *redis.Client) (*WatchManager, error) {
 	return wm, nil
 }
 
-func (wm *WatchManager) AddWatch(uid, path string) error {
+func (wm *WatchManager) AddWatch(uid, watchPath string) error {
 	wm.Mu.Lock()
 	defer wm.Mu.Unlock()
 
-	if wm.PathToUidMap[path] == nil {
-		wm.PathToUidMap[path] = make(map[string]bool)
+	watchPath = path.Clean(watchPath)
+
+	if wm.PathToUidMap[watchPath] == nil {
+		wm.PathToUidMap[watchPath] = make(map[string]bool)
 	}
-	wm.PathToUidMap[path][uid] = true
+	wm.PathToUidMap[watchPath][uid] = true
 
 	if wm.UidToPathMap[uid] == nil {
 		wm.UidToPathMap[uid] = make(map[string]bool)
 	}
-	wm.UidToPathMap[uid][path] = true
+	wm.UidToPathMap[uid][watchPath] = true
 
-	if len(wm.PathToUidMap[path]) == 1 {
-		err := wm.Watcher.Add(path)
+	if len(wm.PathToUidMap[watchPath]) == 1 {
+		err := wm.Watcher.Add(watchPath)
 		if err != nil {
-			delete(wm.PathToUidMap[path], uid)
-			delete(wm.UidToPathMap[uid], path)
+			delete(wm.PathToUidMap[watchPath], uid)
+			delete(wm.UidToPathMap[uid], watchPath)
 			return err
 		}
 	}
 	return nil
 }
 
-func (wm *WatchManager) RemoveWatch(uid, path string) {
+func (wm *WatchManager) RemoveWatch(uid, watchPath string) {
 	wm.Mu.Lock()
 	defer wm.Mu.Unlock()
 
+	watchPath = path.Clean(watchPath)
+
 	pathsToRemove := []string{}
 	for watchedPath := range wm.PathToUidMap {
-		if isSubpath(path, watchedPath) {
+		if isSubpath(watchPath, watchedPath) {
 			pathsToRemove = append(pathsToRemove, watchedPath)
 		}
 	}
@@ -91,7 +105,7 @@ func (wm *WatchManager) RemoveWatch(uid, path string) {
 
 	if userPaths, ok := wm.UidToPathMap[uid]; ok {
 		for p := range userPaths {
-			if isSubpath(path, p) {
+			if isSubpath(watchPath, p) {
 				delete(userPaths, p)
 			}
 		}
@@ -137,10 +151,10 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 	wm.Mu.Lock()
 	defer wm.Mu.Unlock()
 
-	dirPath := event.Name
+	watchedPath := filepath.Dir(event.Name)
 
 	uids := []string{}
-	if users, ok := wm.PathToUidMap[dirPath]; ok {
+	if users, ok := wm.PathToUidMap[watchedPath]; ok {
 		for uid := range users {
 			uids = append(uids, uid)
 		}
@@ -160,10 +174,27 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 	}
 
 	evt := WatchEvent{
-		Uids:   uids,
-		Path:   dirPath,
-		Action: action,
-		Name:   event.Name,
+		Uids:        uids,
+		WatchedPath: watchedPath,
+		Action:      action,
+		Path:        event.Name,
+		Timestamp:   time.Now().Unix(),
+	}
+
+	if action != "remove" {
+		info, err := os.Lstat(event.Name)
+		if err == nil {
+			stat, ok := info.Sys().(*syscall.Stat_t)
+			if ok {
+				evt.Ino = &stat.Ino
+			}
+		}
+	}
+	eventStr := event.String()
+	sepIndex := strings.Index(eventStr, "←")
+	if sepIndex != -1 {
+		oldPath := eventStr[sepIndex+3 : len(eventStr)-1]
+		evt.OldPath = &oldPath
 	}
 
 	payload, err := json.Marshal(evt)
