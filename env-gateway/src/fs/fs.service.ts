@@ -1,8 +1,8 @@
 import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
-import { FSRefinedEvent, FSExtEvent } from 'src/common/message';
+import path, { join } from 'node:path';
+import { FSExtEvent, FSBlock, FSResume, FSEventBatch, FSEvent } from 'src/common/message';
 import { SocketMessage, SocketMessageType } from 'src/common/message/socket.message';
 import { debounce } from 'src/utils';
 
@@ -13,7 +13,7 @@ export class FSService {
   root = '/home/devuser/workspace';
   cache: EventCache = { events: [], buffer: [], isProcessing: false };
   debounceTime = 250;
-  busy = false;
+  busy: { uids: string[]; path: string } | null = null;
   process = debounce(() => this._process(), this.debounceTime);
 
   async open(uid: string, path: string) {
@@ -45,20 +45,39 @@ export class FSService {
     this.process();
   }
   burstProtection(cache: EventCache) {
-    if (
-      cache.events.length >= parseInt(process.env.EVENT_QUEUE_SIZE || '100') ||
-      cache.buffer.length >= parseInt(process.env.EVENT_QUEUE_SIZE || '100')
-    ) {
-      // Signal frontend to halt live sync and block interaction with explorer (explorer collapses all ?)
-      return true;
+    const threshold = parseInt(process.env.EVENT_QUEUE_SIZE || '100');
+    if (cache.events.length >= threshold || cache.buffer.length >= threshold) {
+      const paths = new Set<string>();
+      const uids = new Set<string>();
+      let events: FSExtEvent[];
+      if (cache.events.length >= threshold) events = cache.events;
+      else events = cache.buffer;
+      for (const event of events) {
+        paths.add(event.watchedPath);
+        event.uids.forEach((uid) => uids.add(uid));
+      }
+      const blockedPath = this.commonParent(Array.from(paths));
+      for (const uid of uids) {
+        this.redis.emit<any, SocketMessage<FSBlock>>('socket.send', {
+          uid,
+          type: SocketMessageType.FILESYSTEM,
+          data: { action: 'block', path: blockedPath },
+        });
+      }
+      return { uids: Array.from(uids), path: blockedPath };
     }
-    return false;
+    return null;
   }
   _process() {
     if (this.busy) {
-      // Signal frontend to resume live sync and allow interaction with explorer
-      // Maybe this can be implemented on the folder level, based on number of events threshold per watched path
-      // Only those users will see the explorer (or folder) blocked who are watching paths with overloaded events)
+      for (const uid of this.busy.uids) {
+        this.redis.emit<any, SocketMessage<FSResume>>('socket.send', {
+          uid,
+          type: SocketMessageType.FILESYSTEM,
+          data: { action: 'resume', path: this.busy.path },
+        });
+      }
+      this.busy = null;
       return;
     }
     this.cache.isProcessing = true;
@@ -68,20 +87,44 @@ export class FSService {
     this.cache.isProcessing = false;
   }
   sync(events: FSExtEvent[]) {
-    const uidEvents = new Map<string, FSRefinedEvent[]>();
+    const uidEvents = new Map<string, FSEvent[]>();
     for (const event of events) {
       for (const uid of event.uids) {
         if (!uidEvents.has(uid)) uidEvents.set(uid, []);
-        uidEvents.get(uid)?.push({ path: event.path, action: event.action, data: event.name });
+        uidEvents.get(uid)?.push({
+          action: event.action,
+          path: event.path,
+          timestamp: event.timestamp,
+          watchedPath: event.watchedPath,
+          ino: event.ino,
+          oldPath: event.oldPath,
+        });
       }
     }
-    for (const uid in uidEvents) {
-      this.redis.emit<any, SocketMessage<FSRefinedEvent[]>>('socket.send', {
+    for (const uid of uidEvents.keys()) {
+      this.redis.emit<any, SocketMessage<FSEventBatch>>('socket.send', {
         uid,
         type: SocketMessageType.FILESYSTEM,
-        data: uidEvents.get(uid) || [],
+        data: { action: 'batch', events: uidEvents.get(uid) || [] },
       });
     }
+  }
+  commonParent(paths: string[]) {
+    const splitPaths = paths.map((p) => path.resolve(p).split(path.sep));
+
+    const common: string[] = [];
+    for (let i = 0; ; i++) {
+      const segment = splitPaths[0][i];
+      if (segment === undefined) break;
+
+      if (splitPaths.every((parts) => parts[i] === segment)) {
+        common.push(segment);
+      } else {
+        break;
+      }
+    }
+
+    return path.sep + path.join(...common);
   }
 }
 
