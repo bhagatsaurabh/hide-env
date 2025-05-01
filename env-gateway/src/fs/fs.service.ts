@@ -23,10 +23,14 @@ export class FSService {
 
     try {
       const entries = await fs.readdir(path, { withFileTypes: true });
-      return entries.map((entry) => ({
+      const ids = (await Promise.all(entries.map((entry) => fs.lstat(join(path, entry.name))))).map(
+        (stat) => stat.ino,
+      );
+      return entries.map((entry, idx) => ({
         name: entry.name,
         path: join(path, entry.name),
         type: entry.isDirectory() ? 'dir' : 'file',
+        id: ids[idx],
       }));
     } catch (error) {
       console.log(error);
