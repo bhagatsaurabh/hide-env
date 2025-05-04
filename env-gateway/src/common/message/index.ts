@@ -27,20 +27,15 @@ export type FSEvent = {
   ino?: number;
   action: FSEventType;
   timestamp: number;
+  type: 'file' | 'dir';
 };
 export interface FSEventBatch extends SocketMessagePayload {
   events: FSEvent[];
 }
 
-export type FSExtEvent = {
+export interface FSExtEvent extends FSEvent {
   uids: string[];
-  watchedPath: string;
-  path: string;
-  oldPath?: string;
-  ino?: number;
-  action: FSEventType;
-  timestamp: number;
-};
+}
 
 export interface FSBlock extends SocketMessagePayload {
   path: string;

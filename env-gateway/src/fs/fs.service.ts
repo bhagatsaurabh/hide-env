@@ -95,6 +95,7 @@ export class FSService {
     for (const event of events) {
       for (const uid of event.uids) {
         if (!uidEvents.has(uid)) uidEvents.set(uid, []);
+        this.cleanPaths(event);
         uidEvents.get(uid)?.push({
           action: event.action,
           path: event.path,
@@ -102,6 +103,7 @@ export class FSService {
           watchedPath: event.watchedPath,
           ino: event.ino,
           oldPath: event.oldPath,
+          type: event.type,
         });
       }
     }
@@ -111,6 +113,16 @@ export class FSService {
         type: SocketMessageType.FILESYSTEM,
         data: { action: 'batch', events: uidEvents.get(uid) || [] },
       });
+    }
+  }
+  cleanPaths(event: FSExtEvent) {
+    event.path = event.path.replace(this.root, '');
+    if (event.path === '') event.path = '/';
+    event.watchedPath = event.watchedPath.replace(this.root, '');
+    if (event.watchedPath === '') event.watchedPath = '/';
+    if (event.oldPath) {
+      event.oldPath = event.oldPath.replace(this.root, '');
+      if (event.oldPath === '') event.oldPath = '/';
     }
   }
   commonParent(paths: string[]) {
