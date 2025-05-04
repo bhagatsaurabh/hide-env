@@ -30,9 +30,10 @@ type WatchEvent struct {
 	WatchedPath string   `json:"watchedPath"`
 	Action      string   `json:"action"`
 	Path        string   `json:"path"`
-	OldPath     *string  `json:"oldPath,omitempty"`
+	OldPath     string   `json:"oldPath,omitempty"`
 	Timestamp   int64    `json:"timestamp"`
 	Ino         *uint64  `json:"ino,omitempty"`
+	Type        string   `json:"type"`
 }
 
 const (
@@ -184,17 +185,22 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 	if action != "remove" {
 		info, err := os.Lstat(event.Name)
 		if err == nil {
-			stat, ok := info.Sys().(*syscall.Stat_t)
-			if ok {
+			if stat, ok := info.Sys().(*syscall.Stat_t); ok {
 				evt.Ino = &stat.Ino
+				if info.IsDir() {
+					evt.Type = "dir"
+				} else {
+					evt.Type = "file"
+				}
 			}
 		}
 	}
 	eventStr := event.String()
+	log.Println(eventStr)
 	sepIndex := strings.Index(eventStr, "←")
 	if sepIndex != -1 {
-		oldPath := eventStr[sepIndex+3 : len(eventStr)-1]
-		evt.OldPath = &oldPath
+		oldPath := eventStr[sepIndex+5 : len(eventStr)-1]
+		evt.OldPath = oldPath
 	}
 
 	payload, err := json.Marshal(evt)
