@@ -117,12 +117,12 @@ func (wm *WatchManager) RemoveWatch(uid, watchPath string) {
 }
 
 func isSubpath(parent, child string) bool {
-	rel, err := filepath.Rel(parent, child)
-	if err != nil {
-		return false
+	absParent := filepath.Clean(parent)
+	absChild := filepath.Clean(child)
+	if absParent == absChild {
+		return true
 	}
-	joined := filepath.Join(parent, rel)
-	return joined == child
+	return strings.HasPrefix(absChild, absParent+"/")
 }
 
 func (wm *WatchManager) Start(ctx context.Context) {
