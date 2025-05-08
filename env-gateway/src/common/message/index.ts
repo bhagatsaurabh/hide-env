@@ -41,3 +41,14 @@ export interface FSBlock extends SocketMessagePayload {
   path: string;
 }
 export type FSResume = FSBlock;
+
+export interface FSDocUpdate extends SocketMessagePayload {
+  uuid: string;
+  path: string;
+  update: Uint8Array<ArrayBufferLike>;
+}
+
+export type FSDocUpdateEvent = {
+  path: string;
+  update: string;
+};

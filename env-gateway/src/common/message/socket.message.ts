@@ -8,6 +8,11 @@ export type SocketMessage<T extends SocketMessagePayload> = {
   type: SocketMessageType;
   data: T;
 };
+export type SocketBroadcast<T extends SocketMessagePayload> = {
+  uids: string[];
+  type: SocketMessageType;
+  data: T;
+};
 
 export enum SocketMessageType {
   FILESYSTEM = 'fs',
