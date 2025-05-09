@@ -64,7 +64,7 @@ export class FSService {
   }
   async openFile(uid: string, path: string) {
     const doc = await this.getDoc(uid, path);
-    (doc.meta as DocMeta).path = path;
+    (doc.meta as DocMeta) = { path };
     const state = encodeStateAsUpdate(doc);
     this.registerUpdate(doc);
     if (!this.uidToPath.has(uid)) this.uidToPath.set(uid, new Set());
@@ -219,11 +219,10 @@ export class FSService {
   }
 
   async getDoc(uid: string, path: string) {
-    path = this.root + path;
     if (!this.docs.has(path)) {
       const doc = new Doc();
       const yText = doc.getText('monaco');
-      const text = await fs.readFile(resolve(this.root, path), 'utf-8');
+      const text = await fs.readFile(path, 'utf-8');
       yText.insert(0, text);
       this.docs.set(path, { doc, uids: new Set([uid]) });
     }
@@ -232,7 +231,7 @@ export class FSService {
   handleFSUpdate(msg: Message<FSDocUpdateEvent>) {
     const data = this.docs.get(msg.payload.path);
     if (!data) return;
-    applyUpdate(data.doc, new Uint8Array(JSON.parse(msg.payload.update) as ArrayBufferLike), msg.meta.uid);
+    applyUpdate(data.doc, new Uint8Array(msg.payload.update), msg.meta.uid);
   }
 }
 

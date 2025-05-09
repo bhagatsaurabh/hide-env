@@ -50,5 +50,5 @@ export interface FSDocUpdate extends SocketMessagePayload {
 
 export type FSDocUpdateEvent = {
   path: string;
-  update: string;
+  update: Uint8Array<ArrayBufferLike>;
 };
