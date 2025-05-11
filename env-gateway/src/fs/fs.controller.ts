@@ -1,20 +1,47 @@
 import { Controller } from '@nestjs/common';
 import { EventPattern, MessagePattern, Payload, Transport } from '@nestjs/microservices';
-import { FSCloseRequest, FSDocUpdateEvent, FSExtEvent, FSOpenRequest, Message } from 'src/common/message';
+import { FSCloseRequest, FSDocSyncEvent, FSExtEvent, FSOpenRequest, Message } from 'src/common/message';
 import { FSService } from './fs.service';
+import { promises as fs } from 'node:fs';
+import { SyncService } from './sync.service';
 
 @Controller('api')
 export class FSController {
-  constructor(private readonly fsService: FSService) {}
+  root = '/home/devuser/workspace';
+
+  constructor(
+    private readonly fsService: FSService,
+    private readonly syncService: SyncService,
+  ) {}
 
   @MessagePattern('fs:open', Transport.REDIS)
   async fsOpen(@Payload() msg: Message<FSOpenRequest>) {
-    return await this.fsService.open(msg.meta.uid, msg.payload.path);
+    const path = this.root + msg.payload.path;
+    try {
+      const stat = await fs.stat(path);
+      if (stat.isDirectory()) {
+        return await this.fsService.openDir(msg.meta.uid, path);
+      }
+      return this.syncService.openFile(msg.meta.uid, path);
+    } catch (err) {
+      console.log(err);
+      return [];
+    }
   }
 
   @MessagePattern('fs:close', Transport.REDIS)
-  fsClose(@Payload() msg: Message<FSCloseRequest>) {
-    return this.fsService.close(msg.meta.uid, msg.payload.path);
+  async fsClose(@Payload() msg: Message<FSCloseRequest>) {
+    const path = this.root + msg.payload.path;
+    try {
+      const stat = await fs.stat(path);
+      if (stat.isDirectory()) {
+        return this.fsService.closeDir(msg.meta.uid, path);
+      }
+      return this.syncService.closeFile(msg.meta.uid, path);
+    } catch (err) {
+      console.log(err);
+      return;
+    }
   }
 
   @EventPattern('watch-event', Transport.REDIS)
@@ -22,8 +49,8 @@ export class FSController {
     this.fsService.handleEvent(event);
   }
 
-  @EventPattern('fs:update', Transport.REDIS)
-  handleFSUpdate(@Payload() msg: Message<FSDocUpdateEvent>) {
-    this.fsService.handleFSUpdate(msg);
+  @EventPattern('fs:sync', Transport.REDIS)
+  handleFSUpdate(@Payload() msg: Message<FSDocSyncEvent>) {
+    this.syncService.handleFSUpdate(msg);
   }
 }

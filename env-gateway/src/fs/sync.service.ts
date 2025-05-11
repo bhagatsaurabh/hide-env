@@ -1,0 +1,135 @@
+import { promises as fs } from 'node:fs';
+import { Inject, Injectable } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import * as syncProtocol from 'y-protocols/sync';
+import * as awarenessProtocol from 'y-protocols/awareness';
+import * as encoding from 'lib0/encoding';
+import * as decoding from 'lib0/decoding';
+
+import { FSDocSyncEvent, Message, FSDocUpdate } from 'src/common/message';
+import { SocketBroadcast, SocketMessage, SocketMessageType } from 'src/common/message/socket.message';
+import { WSSharedDoc, YMessage } from 'src/utils/shareddoc';
+
+@Injectable()
+export class SyncService {
+  uuid = process.env.WS_UUID!;
+
+  constructor(@Inject('FILESYSTEM_SERVICE_REDIS') private redis: ClientProxy) {}
+
+  docs = new Map<string, WSSharedDoc>();
+  uidToPath = new Map<string, Set<string>>();
+  root = '/home/devuser/workspace';
+
+  openFile(uid: string, path: string) {
+    let doc = this.docs.get(path);
+    if (!doc) {
+      doc = new WSSharedDoc(
+        path,
+        (...a) => this.broadcast(...a),
+        (...a) => this.init(...a),
+      );
+      this.docs.set(path, doc);
+    }
+    doc.users.set(uid, new Set());
+
+    const encoder = encoding.createEncoder();
+    encoding.writeVarUint(encoder, YMessage.SYNC);
+    syncProtocol.writeSyncStep1(encoder, doc);
+    this.send(uid, path, encoding.toUint8Array(encoder));
+    const awarenessStates = doc.awareness.getStates();
+    if (awarenessStates.size > 0) {
+      const encoder = encoding.createEncoder();
+      encoding.writeVarUint(encoder, YMessage.AWARENESS);
+      encoding.writeVarUint8Array(
+        encoder,
+        awarenessProtocol.encodeAwarenessUpdate(doc.awareness, Array.from(awarenessStates.keys())),
+      );
+      this.send(uid, path, encoding.toUint8Array(encoder));
+    }
+
+    ////////////
+
+    /* (doc.meta as DocMeta) = { path };
+    const state = encodeStateAsUpdate(doc);
+    this.registerUpdate(doc);
+    if (!this.uidToPath.has(uid)) this.uidToPath.set(uid, new Set());
+    this.uidToPath.get(uid)?.add(path);
+    return Buffer.from(state).toString('base64'); */
+  }
+  closeFile(uid: string, path: string) {
+    const doc = this.docs.get(path);
+    if (!doc) return;
+
+    if (doc.users.has(uid)) {
+      const controlledIds = doc.users.get(uid)!;
+      doc.users.delete(uid);
+      awarenessProtocol.removeAwarenessStates(doc.awareness, Array.from(controlledIds), null);
+      if (doc.users.size === 0) {
+        doc.destroy();
+        this.docs.delete(doc.name);
+      }
+    }
+
+    ///////////
+
+    /* this.uidToPath.get(uid)?.delete(path);
+    const data = this.docs.get(path);
+    if (!data) return;
+
+    data.uids.delete(uid);
+    if (data.uids.size === 0) {
+      data.doc.destroy();
+      this.docs.delete(path);
+    } */
+  }
+
+  broadcast(uids: string[], path: string, buf: Uint8Array) {
+    this.redis.emit<any, SocketBroadcast<FSDocUpdate>>('socket.broadcast', {
+      uids,
+      type: SocketMessageType.FILESYSTEM,
+      data: { action: 'sync', path, buf, uuid: this.uuid },
+    });
+  }
+  send(uid: string, path: string, buf: Uint8Array) {
+    this.redis.emit<any, SocketMessage<FSDocUpdate>>('socket.send', {
+      uid,
+      type: SocketMessageType.FILESYSTEM,
+      data: { action: 'sync', path, buf, uuid: this.uuid },
+    });
+  }
+  async init(doc: WSSharedDoc) {
+    const yText = doc.getText('monaco');
+    const text = await fs.readFile(doc.name, 'utf-8');
+    yText.insert(0, text);
+  }
+
+  handleFSUpdate(msg: Message<FSDocSyncEvent>) {
+    const doc = this.docs.get(msg.payload.path);
+    if (!doc) return;
+
+    try {
+      const encoder = encoding.createEncoder();
+      const decoder = decoding.createDecoder(msg.payload.buf);
+      const messageType = decoding.readVarUint(decoder) as YMessage;
+      switch (messageType) {
+        case YMessage.SYNC:
+          encoding.writeVarUint(encoder, YMessage.SYNC);
+          syncProtocol.readSyncMessage(decoder, encoder, doc, msg.meta.uid);
+          if (encoding.length(encoder) > 1) {
+            this.send(msg.meta.uid, msg.payload.path, encoding.toUint8Array(encoder));
+          }
+          break;
+        case YMessage.AWARENESS: {
+          awarenessProtocol.applyAwarenessUpdate(
+            doc.awareness,
+            decoding.readVarUint8Array(decoder),
+            msg.meta.uid,
+          );
+          break;
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+}
