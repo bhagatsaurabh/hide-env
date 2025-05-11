@@ -45,10 +45,10 @@ export type FSResume = FSBlock;
 export interface FSDocUpdate extends SocketMessagePayload {
   uuid: string;
   path: string;
-  update: Uint8Array<ArrayBufferLike>;
+  buf: Uint8Array<ArrayBufferLike>;
 }
 
-export type FSDocUpdateEvent = {
+export type FSDocSyncEvent = {
   path: string;
-  update: Uint8Array<ArrayBufferLike>;
+  buf: Uint8Array<ArrayBufferLike>;
 };
