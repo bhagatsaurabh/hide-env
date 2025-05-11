@@ -87,14 +87,24 @@ export class SyncService {
     this.redis.emit<any, SocketBroadcast<FSDocUpdate>>('socket.broadcast', {
       uids,
       type: SocketMessageType.FILESYSTEM,
-      data: { action: 'sync', path, buf, uuid: this.uuid },
+      data: {
+        action: 'sync',
+        path: path.replace(this.root, ''),
+        buf: Buffer.from(buf).toString('base64'),
+        uuid: this.uuid,
+      },
     });
   }
   send(uid: string, path: string, buf: Uint8Array) {
     this.redis.emit<any, SocketMessage<FSDocUpdate>>('socket.send', {
       uid,
       type: SocketMessageType.FILESYSTEM,
-      data: { action: 'sync', path, buf, uuid: this.uuid },
+      data: {
+        action: 'sync',
+        path: path.replace(this.root, ''),
+        buf: Buffer.from(buf).toString('base64'),
+        uuid: this.uuid,
+      },
     });
   }
   async init(doc: WSSharedDoc) {
@@ -104,12 +114,15 @@ export class SyncService {
   }
 
   handleFSUpdate(msg: Message<FSDocSyncEvent>) {
+    msg.payload.path = this.root + msg.payload.path;
+    console.log(msg);
     const doc = this.docs.get(msg.payload.path);
     if (!doc) return;
 
     try {
       const encoder = encoding.createEncoder();
-      const decoder = decoding.createDecoder(msg.payload.buf);
+      const buf = Uint8Array.from(Buffer.from(msg.payload.buf, 'base64'));
+      const decoder = decoding.createDecoder(buf);
       const messageType = decoding.readVarUint(decoder) as YMessage;
       switch (messageType) {
         case YMessage.SYNC:
