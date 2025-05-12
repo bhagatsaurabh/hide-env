@@ -1,6 +1,13 @@
 import { Controller } from '@nestjs/common';
 import { EventPattern, MessagePattern, Payload, Transport } from '@nestjs/microservices';
-import { FSCloseRequest, FSDocSyncEvent, FSExtEvent, FSOpenRequest, Message } from 'src/common/message';
+import {
+  FSCloseRequest,
+  FSDocSyncEvent,
+  FSExtEvent,
+  FSOpenRequest,
+  FSSaveRequest,
+  Message,
+} from 'src/common/message';
 import { FSService } from './fs.service';
 import { promises as fs } from 'node:fs';
 import { SyncService } from './sync.service';
@@ -52,5 +59,9 @@ export class FSController {
   @EventPattern('fs:sync', Transport.REDIS)
   handleFSUpdate(@Payload() msg: Message<FSDocSyncEvent>) {
     this.syncService.handleFSUpdate(msg);
+  }
+  @EventPattern('fs:save', Transport.REDIS)
+  async handleFSSave(@Payload() msg: Message<FSSaveRequest>) {
+    await this.syncService.handleFSSave(msg);
   }
 }

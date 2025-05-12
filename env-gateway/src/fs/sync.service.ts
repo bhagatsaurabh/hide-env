@@ -6,9 +6,10 @@ import * as awarenessProtocol from 'y-protocols/awareness';
 import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 
-import { FSDocSyncEvent, Message, FSDocUpdate } from 'src/common/message';
+import { FSDocSyncEvent, Message, FSDocUpdate, FSSaveRequest } from 'src/common/message';
 import { SocketBroadcast, SocketMessage, SocketMessageType } from 'src/common/message/socket.message';
 import { WSSharedDoc, YMessage } from 'src/utils/shareddoc';
+import { createHash } from 'node:crypto';
 
 @Injectable()
 export class SyncService {
@@ -46,15 +47,6 @@ export class SyncService {
       );
       this.send(uid, path, encoding.toUint8Array(encoder));
     }
-
-    ////////////
-
-    /* (doc.meta as DocMeta) = { path };
-    const state = encodeStateAsUpdate(doc);
-    this.registerUpdate(doc);
-    if (!this.uidToPath.has(uid)) this.uidToPath.set(uid, new Set());
-    this.uidToPath.get(uid)?.add(path);
-    return Buffer.from(state).toString('base64'); */
   }
   closeFile(uid: string, path: string) {
     const doc = this.docs.get(path);
@@ -69,18 +61,6 @@ export class SyncService {
         this.docs.delete(doc.name);
       }
     }
-
-    ///////////
-
-    /* this.uidToPath.get(uid)?.delete(path);
-    const data = this.docs.get(path);
-    if (!data) return;
-
-    data.uids.delete(uid);
-    if (data.uids.size === 0) {
-      data.doc.destroy();
-      this.docs.delete(path);
-    } */
   }
 
   broadcast(uids: string[], path: string, buf: Uint8Array) {
@@ -115,7 +95,6 @@ export class SyncService {
 
   handleFSUpdate(msg: Message<FSDocSyncEvent>) {
     msg.payload.path = this.root + msg.payload.path;
-    console.log(msg);
     const doc = this.docs.get(msg.payload.path);
     if (!doc) return;
 
@@ -144,5 +123,18 @@ export class SyncService {
     } catch (err) {
       console.error(err);
     }
+  }
+  async handleFSSave(msg: Message<FSSaveRequest>) {
+    msg.payload.path = this.root + msg.payload.path;
+    const doc = this.docs.get(msg.payload.path);
+    if (!doc) return;
+
+    const content = doc.getText('monaco').toJSON();
+    await fs.writeFile(msg.payload.path, content, 'utf-8');
+  }
+
+  async getHashFromFile(path: string) {
+    const content = await fs.readFile(path, 'utf-8');
+    return createHash('sha256').update(content, 'utf-8').digest('hex');
   }
 }
