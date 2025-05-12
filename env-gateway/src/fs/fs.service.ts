@@ -5,6 +5,7 @@ import { join, resolve, sep } from 'node:path';
 import { FSExtEvent, FSBlock, FSResume, FSEventBatch, FSEvent } from 'src/common/message';
 import { SocketMessage, SocketMessageType } from 'src/common/message/socket.message';
 import { debounce } from 'src/utils';
+import { SyncService } from './sync.service';
 
 type EventCache = {
   events: Array<FSExtEvent>;
@@ -15,13 +16,16 @@ type EventCache = {
 
 @Injectable()
 export class FSService {
-  constructor(@Inject('FILESYSTEM_SERVICE_REDIS') private redis: ClientProxy) {}
+  constructor(
+    @Inject('FILESYSTEM_SERVICE_REDIS') private redis: ClientProxy,
+    private readonly syncService: SyncService,
+  ) {}
 
   root = '/home/devuser/workspace';
   cache: EventCache = { events: [], buffer: [], isProcessing: false };
   debounceTime = 250;
   busy: { uids: string[]; path: string } | null = null;
-  process = debounce(() => this._process(), this.debounceTime);
+  process = debounce(async () => await this._process(), this.debounceTime);
 
   async openDir(uid: string, path: string) {
     this.redis.emit('add-watch', { uid, path });
@@ -76,7 +80,7 @@ export class FSService {
     }
     return null;
   }
-  _process() {
+  async _process() {
     if (this.busy) {
       for (const uid of this.busy.uids) {
         this.redis.emit<any, SocketMessage<FSResume>>('socket.send', {
@@ -89,14 +93,24 @@ export class FSService {
       return;
     }
     this.cache.isProcessing = true;
-    this.sync(this.cache.events);
+    await this.sync(this.cache.events);
     this.cache.events = this.cache.buffer;
     this.cache.buffer = [];
     this.cache.isProcessing = false;
   }
-  sync(events: FSExtEvent[]) {
+  async sync(events: FSExtEvent[]) {
     const uidEvents = new Map<string, FSEvent[]>();
     for (const event of events) {
+      const doc = this.syncService.docs.get(event.path);
+      if (event.type === 'file' && event.action === 'write' && doc) {
+        console.log('yup');
+        const fileHash = await this.syncService.getHashFromFile(event.path);
+        const docHash = doc.computeHash();
+        if (fileHash === docHash) {
+          continue;
+        }
+      }
+
       for (const uid of event.uids) {
         if (!uidEvents.has(uid)) uidEvents.set(uid, []);
         this.cleanPaths(event);

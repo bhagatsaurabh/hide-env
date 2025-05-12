@@ -10,13 +10,12 @@ export interface Message<T = any> {
   payload: T;
 }
 
-export type FSOpenRequest = {
+type FSRequest = {
   path: string;
 };
-
-export type FSCloseRequest = {
-  path: string;
-};
+export type FSOpenRequest = FSRequest;
+export type FSCloseRequest = FSRequest;
+export type FSSaveRequest = FSRequest;
 
 export type FSEventType = 'create' | 'remove' | 'rename' | 'write';
 

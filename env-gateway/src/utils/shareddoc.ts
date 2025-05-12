@@ -1,4 +1,5 @@
-import { Doc, Transaction } from 'yjs';
+import { createHash } from 'node:crypto';
+import { applyUpdate, Doc, Transaction } from 'yjs';
 import * as awarenessProtocol from 'y-protocols/awareness';
 import * as syncProtocol from 'y-protocols/sync';
 import * as encoding from 'lib0/encoding';
@@ -10,6 +11,7 @@ export enum YMessage {
 }
 
 export class WSSharedDoc extends Doc {
+  hash: string;
   awareness: awarenessProtocol.Awareness;
   users: Map<string, Set<number>>;
   whenInitialized: Promise<void>;
@@ -31,7 +33,9 @@ export class WSSharedDoc extends Doc {
       this.updateHandler(update, origin, doc, tran),
     );
 
-    void this.init(this);
+    this.init(this)
+      .then(() => this.computeHash())
+      .catch((err) => console.log(err));
   }
 
   awarenessChangeHandler({ added, updated, removed }: AwarenessUpdate, uid: string) {
@@ -62,6 +66,16 @@ export class WSSharedDoc extends Doc {
     encoding.writeVarUint(encoder, YMessage.SYNC);
     syncProtocol.writeUpdate(encoder, update);
     const buf = encoding.toUint8Array(encoder);
+
+    applyUpdate(doc, buf, this);
     this.send(Array.from(doc.users.keys()), doc.name, buf);
+  }
+
+  computeHash(content?: string) {
+    if (!content) {
+      content = this.getText('monaco').toJSON();
+    }
+    this.hash = createHash('sha256').update(content, 'utf-8').digest('hex');
+    return this.hash;
   }
 }
