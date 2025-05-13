@@ -19,13 +19,21 @@ export class FSService {
   constructor(
     @Inject('FILESYSTEM_SERVICE_REDIS') private redis: ClientProxy,
     private readonly syncService: SyncService,
-  ) {}
+  ) {
+    this.setIdleTimeout();
+  }
 
   root = '/home/devuser/workspace';
+  idleTimeout: NodeJS.Timeout;
   cache: EventCache = { events: [], buffer: [], isProcessing: false };
   debounceTime = 250;
   busy: { uids: string[]; path: string } | null = null;
   process = debounce(async () => await this._process(), this.debounceTime);
+
+  setIdleTimeout() {
+    if (this.idleTimeout) clearTimeout(this.idleTimeout);
+    this.idleTimeout = setTimeout(() => this.handleCold(), parseInt(process.env.IDLE_TIMEOUT!) || 1800000);
+  }
 
   async openDir(uid: string, path: string) {
     this.redis.emit('add-watch', { uid, path });
@@ -159,5 +167,17 @@ export class FSService {
     }
 
     return sep + join(...common);
+  }
+
+  handleHeartbeat(_uid: string) {
+    this.setIdleTimeout();
+  }
+  handleCold() {
+    this.dispose();
+    // TODO: Signal provisioner: Snapshot me to image & de-provision
+  }
+  dispose() {
+    this.syncService.dispose();
+    // TODO
   }
 }

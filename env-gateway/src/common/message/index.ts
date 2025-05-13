@@ -51,3 +51,10 @@ export type FSDocSyncEvent = {
   path: string;
   buf: string;
 };
+
+export type EnvPayload = {
+  uuid: string;
+  [k: string]: unknown;
+};
+
+export type EnvPingEvent = EnvPayload;
