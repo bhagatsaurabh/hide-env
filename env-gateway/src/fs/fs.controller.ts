@@ -1,6 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { EventPattern, MessagePattern, Payload, Transport } from '@nestjs/microservices';
 import {
+  EnvPingEvent,
   FSCloseRequest,
   FSDocSyncEvent,
   FSExtEvent,
@@ -51,6 +52,11 @@ export class FSController {
     }
   }
 
+  @MessagePattern('env.shutdown', Transport.REDIS)
+  shutdown() {
+    this.fsService.dispose();
+  }
+
   @EventPattern('watch-event', Transport.REDIS)
   handleEvent(@Payload() event: FSExtEvent) {
     this.fsService.handleEvent(event);
@@ -63,5 +69,10 @@ export class FSController {
   @EventPattern('fs:save', Transport.REDIS)
   async handleFSSave(@Payload() msg: Message<FSSaveRequest>) {
     await this.syncService.handleFSSave(msg);
+  }
+
+  @EventPattern('env:ping', Transport.REDIS)
+  handleHeartbeat(@Payload() msg: Message<EnvPingEvent>) {
+    this.fsService.handleHeartbeat(msg.meta.uid);
   }
 }

@@ -137,4 +137,8 @@ export class SyncService {
     const content = await fs.readFile(path, 'utf-8');
     return createHash('sha256').update(content, 'utf-8').digest('hex');
   }
+
+  dispose() {
+    // TODO
+  }
 }
