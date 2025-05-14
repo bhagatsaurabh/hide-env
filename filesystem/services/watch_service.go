@@ -37,7 +37,7 @@ type WatchEvent struct {
 }
 
 const (
-	WatchEventChannel = "watch-event"
+	WatchEventChannel = "env.fs.watch"
 )
 
 func NewWatchManager(redis *redis.Client) (*WatchManager, error) {
