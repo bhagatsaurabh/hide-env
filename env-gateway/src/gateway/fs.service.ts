@@ -2,8 +2,15 @@ import { Inject, Injectable, InternalServerErrorException } from '@nestjs/common
 import { ClientProxy } from '@nestjs/microservices';
 import { promises as fs } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
-import { FSExtEvent, FSBlock, FSResume, FSEventBatch, FSEvent } from 'src/common/message';
-import { SocketMessage, SocketMessageType } from 'src/common/message/socket.message';
+import {
+  FSExtEvent,
+  FSBlock,
+  FSResume,
+  FSEventBatch,
+  FSEvent,
+  ServiceEvent,
+  SocketSend,
+} from 'src/common/message';
 import { debounce } from 'src/utils';
 import { SyncService } from './sync.service';
 
@@ -78,10 +85,8 @@ export class FSService {
       }
       const blockedPath = this.commonParent(Array.from(paths));
       for (const uid of uids) {
-        this.redis.emit<any, SocketMessage<FSBlock>>('socket.send', {
-          uid,
-          type: SocketMessageType.FILESYSTEM,
-          data: { action: 'block', path: blockedPath },
+        this.redis.emit<any, ServiceEvent<SocketSend<FSBlock>>>('socket.send', {
+          payload: { uid, pattern: 'fs', msg: { action: 'block', path: blockedPath } },
         });
       }
       return { uids: Array.from(uids), path: blockedPath };
@@ -91,10 +96,8 @@ export class FSService {
   async _process() {
     if (this.busy) {
       for (const uid of this.busy.uids) {
-        this.redis.emit<any, SocketMessage<FSResume>>('socket.send', {
-          uid,
-          type: SocketMessageType.FILESYSTEM,
-          data: { action: 'resume', path: this.busy.path },
+        this.redis.emit<any, ServiceEvent<SocketSend<FSResume>>>('socket.send', {
+          payload: { uid, pattern: 'fs', msg: { action: 'resume', path: this.busy.path } },
         });
       }
       this.busy = null;
@@ -134,10 +137,8 @@ export class FSService {
       }
     }
     for (const uid of uidEvents.keys()) {
-      this.redis.emit<any, SocketMessage<FSEventBatch>>('socket.send', {
-        uid,
-        type: SocketMessageType.FILESYSTEM,
-        data: { action: 'batch', events: uidEvents.get(uid) || [] },
+      this.redis.emit<any, ServiceEvent<SocketSend<FSEventBatch>>>('socket.send', {
+        payload: { uid, pattern: 'fs', msg: { action: 'batch', events: uidEvents.get(uid) || [] } },
       });
     }
   }
@@ -174,7 +175,7 @@ export class FSService {
   }
   handleCold() {
     this.dispose();
-    // TODO: Signal provisioner: Snapshot me to image & de-provision
+    this.redis.emit('provisioner.deprovision', { uuid: process.env.WS_UUID! });
   }
   dispose() {
     this.syncService.dispose();

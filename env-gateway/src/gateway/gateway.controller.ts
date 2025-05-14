@@ -1,3 +1,4 @@
+import { promises as fs } from 'node:fs';
 import { Controller } from '@nestjs/common';
 import { EventPattern, MessagePattern, Payload, Transport } from '@nestjs/microservices';
 import {
@@ -10,11 +11,10 @@ import {
   Message,
 } from 'src/common/message';
 import { FSService } from './fs.service';
-import { promises as fs } from 'node:fs';
 import { SyncService } from './sync.service';
 
 @Controller('api')
-export class FSController {
+export class GatewayController {
   root = '/home/devuser/workspace';
 
   constructor(
@@ -22,7 +22,16 @@ export class FSController {
     private readonly syncService: SyncService,
   ) {}
 
-  @MessagePattern('fs:open', Transport.REDIS)
+  @EventPattern('env.ping', Transport.REDIS)
+  handleHeartbeat(@Payload() msg: Message<EnvPingEvent>) {
+    this.fsService.handleHeartbeat(msg.meta.uid);
+  }
+  @MessagePattern('env.shutdown', Transport.REDIS)
+  shutdown() {
+    this.fsService.dispose();
+  }
+
+  @MessagePattern('env.fs.open', Transport.REDIS)
   async fsOpen(@Payload() msg: Message<FSOpenRequest>) {
     const path = this.root + msg.payload.path;
     try {
@@ -36,8 +45,7 @@ export class FSController {
       return [];
     }
   }
-
-  @MessagePattern('fs:close', Transport.REDIS)
+  @MessagePattern('env.fs.close', Transport.REDIS)
   async fsClose(@Payload() msg: Message<FSCloseRequest>) {
     const path = this.root + msg.payload.path;
     try {
@@ -51,28 +59,17 @@ export class FSController {
       return;
     }
   }
-
-  @MessagePattern('env.shutdown', Transport.REDIS)
-  shutdown() {
-    this.fsService.dispose();
-  }
-
-  @EventPattern('watch-event', Transport.REDIS)
+  @EventPattern('env.fs.watch', Transport.REDIS)
   handleEvent(@Payload() event: FSExtEvent) {
     this.fsService.handleEvent(event);
   }
 
-  @EventPattern('fs:sync', Transport.REDIS)
+  @EventPattern('env.fs.sync', Transport.REDIS)
   handleFSUpdate(@Payload() msg: Message<FSDocSyncEvent>) {
     this.syncService.handleFSUpdate(msg);
   }
-  @EventPattern('fs:save', Transport.REDIS)
+  @EventPattern('env.fs.save', Transport.REDIS)
   async handleFSSave(@Payload() msg: Message<FSSaveRequest>) {
     await this.syncService.handleFSSave(msg);
-  }
-
-  @EventPattern('env:ping', Transport.REDIS)
-  handleHeartbeat(@Payload() msg: Message<EnvPingEvent>) {
-    this.fsService.handleHeartbeat(msg.meta.uid);
   }
 }

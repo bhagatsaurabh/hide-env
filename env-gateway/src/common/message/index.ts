@@ -41,7 +41,7 @@ export interface FSBlock extends SocketMessagePayload {
 }
 export type FSResume = FSBlock;
 
-export interface FSDocUpdate extends SocketMessagePayload {
+export interface FSSync extends SocketMessagePayload {
   uuid: string;
   path: string;
   buf: string;
@@ -58,3 +58,29 @@ export type EnvPayload = {
 };
 
 export type EnvPingEvent = EnvPayload;
+
+///////////////////
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export type ServiceEventPayload = {};
+export interface ServiceEvent<T extends ServiceEventPayload> {
+  meta?: {
+    requestId?: string;
+    timestamp?: number;
+    uid?: string;
+    route?: string;
+  };
+  payload: T;
+}
+
+export interface SocketSend<T extends SocketMessagePayload> extends ServiceEventPayload {
+  uid: string;
+  pattern: string;
+  msg: T;
+}
+
+export interface SocketBroadcast<T extends SocketMessagePayload> extends ServiceEventPayload {
+  uids: string[];
+  pattern: string;
+  msg: T;
+}

@@ -6,8 +6,15 @@ import * as awarenessProtocol from 'y-protocols/awareness';
 import * as encoding from 'lib0/encoding';
 import * as decoding from 'lib0/decoding';
 
-import { FSDocSyncEvent, Message, FSDocUpdate, FSSaveRequest } from 'src/common/message';
-import { SocketBroadcast, SocketMessage, SocketMessageType } from 'src/common/message/socket.message';
+import {
+  FSDocSyncEvent,
+  Message,
+  FSSync,
+  FSSaveRequest,
+  ServiceEvent,
+  SocketBroadcast,
+  SocketSend,
+} from 'src/common/message';
 import { WSSharedDoc, YMessage } from 'src/utils/shareddoc';
 import { createHash } from 'node:crypto';
 
@@ -64,26 +71,30 @@ export class SyncService {
   }
 
   broadcast(uids: string[], path: string, buf: Uint8Array) {
-    this.redis.emit<any, SocketBroadcast<FSDocUpdate>>('socket.broadcast', {
-      uids,
-      type: SocketMessageType.FILESYSTEM,
-      data: {
-        action: 'sync',
-        path: path.replace(this.root, ''),
-        buf: Buffer.from(buf).toString('base64'),
-        uuid: this.uuid,
+    this.redis.emit<any, ServiceEvent<SocketBroadcast<FSSync>>>('socket.broadcast', {
+      payload: {
+        uids,
+        pattern: 'fs',
+        msg: {
+          action: 'sync',
+          path: path.replace(this.root, ''),
+          buf: Buffer.from(buf).toString('base64'),
+          uuid: this.uuid,
+        },
       },
     });
   }
   send(uid: string, path: string, buf: Uint8Array) {
-    this.redis.emit<any, SocketMessage<FSDocUpdate>>('socket.send', {
-      uid,
-      type: SocketMessageType.FILESYSTEM,
-      data: {
-        action: 'sync',
-        path: path.replace(this.root, ''),
-        buf: Buffer.from(buf).toString('base64'),
-        uuid: this.uuid,
+    this.redis.emit<any, ServiceEvent<SocketSend<FSSync>>>('socket.send', {
+      payload: {
+        uid,
+        pattern: 'fs',
+        msg: {
+          action: 'sync',
+          path: path.replace(this.root, ''),
+          buf: Buffer.from(buf).toString('base64'),
+          uuid: this.uuid,
+        },
       },
     });
   }

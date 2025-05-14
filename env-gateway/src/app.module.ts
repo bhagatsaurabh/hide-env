@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { FSModule } from './fs/fs.module';
+import { GatewayModule } from './gateway/gateway.module';
 
 @Module({
-  imports: [FSModule],
+  imports: [GatewayModule],
   controllers: [],
   providers: [],
 })
