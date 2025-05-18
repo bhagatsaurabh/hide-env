@@ -5,6 +5,7 @@ package services
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -36,9 +37,8 @@ type WatchEvent struct {
 	Type        string   `json:"type"`
 }
 
-const (
-	WatchEventChannel = "env.fs.watch"
-)
+var uuid = os.Getenv("WS_UUID")
+var WatchEventChannel = fmt.Sprintf("env.%s.fs.watch", uuid)
 
 func NewWatchManager(redis *redis.Client) (*WatchManager, error) {
 	watcher, err := fsnotify.NewWatcher()

@@ -1,4 +1,4 @@
-import { SocketMessagePayload } from './socket.message';
+import { OutSocketMessage, OutSocketMessageActionMap, SocketMessagePayload } from './socket.message';
 
 export interface Message<T = any> {
   meta: {
@@ -73,14 +73,14 @@ export interface ServiceEvent<T extends ServiceEventPayload> {
   payload: T;
 }
 
-export interface SocketSend<T extends SocketMessagePayload> extends ServiceEventPayload {
+export interface SocketSend<K extends keyof OutSocketMessageActionMap> extends ServiceEventPayload {
   uid: string;
   pattern: string;
-  msg: T;
+  msg: OutSocketMessage<K>;
 }
 
-export interface SocketBroadcast<T extends SocketMessagePayload> extends ServiceEventPayload {
+export interface SocketBroadcast<K extends keyof OutSocketMessageActionMap> extends ServiceEventPayload {
   uids: string[];
   pattern: string;
-  msg: T;
+  msg: OutSocketMessage<K>;
 }
