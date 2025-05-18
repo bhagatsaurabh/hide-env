@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
-import { Controller } from '@nestjs/common';
-import { EventPattern, MessagePattern, Payload, Transport } from '@nestjs/microservices';
+import { Controller, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { MessagePattern, Payload, Transport } from '@nestjs/microservices';
 import {
   EnvPingEvent,
   FSCloseRequest,
@@ -12,25 +12,78 @@ import {
 } from 'src/common/message';
 import { FSService } from './fs.service';
 import { SyncService } from './sync.service';
+import { SharedService } from 'src/common/shared.service';
 
 @Controller('api')
-export class GatewayController {
+export class GatewayController implements OnModuleInit, OnModuleDestroy {
   root = '/home/devuser/workspace';
+  uuid = process.env.WS_UUID!;
+  channels = [
+    `env.${this.uuid}.ping`,
+    `env.${this.uuid}.fs.watch`,
+    `env.${this.uuid}.fs.sync`,
+    `env.${this.uuid}.fs.save`,
+  ];
 
   constructor(
     private readonly fsService: FSService,
     private readonly syncService: SyncService,
+    private readonly service: SharedService,
   ) {}
 
-  @EventPattern('env.ping', Transport.REDIS)
-  handleHeartbeat(@Payload() msg: Message<EnvPingEvent>) {
+  async onModuleInit() {
+    /* const [pub, sub] = RedisRef.get();
+    this.redisServer = [pub, sub];
+
+    for (const channel of this.channels) {
+      await sub.subscribe(channel);
+      sub.on('message', (chan, message) => {
+        const parsed = JSON.parse(message) as unknown;
+        switch (chan) {
+          case `env.${this.uuid}.ping`: {
+            this.handleHeartbeat(parsed as Message<EnvPingEvent>);
+            break;
+          }
+          case `env.${this.uuid}.fs.watch`: {
+            this.handleWatchEvent(parsed as FSExtEvent);
+            break;
+          }
+          case `env.${this.uuid}.fs.sync`: {
+            this.handleSyncEvent(parsed as Message<FSDocSyncEvent>);
+            break;
+          }
+          case `env.${this.uuid}.fs.save`: {
+            void this.handleSaveEvent(parsed as Message<FSSaveRequest>);
+            break;
+          }
+          default:
+            break;
+        }
+      });
+    } */
+  }
+  async onModuleDestroy() {
+    await this.redisServer[1].removeAllListeners().unsubscribe(...this.channels);
+  }
+
+  handleHeartbeat(msg: Message<EnvPingEvent>) {
     this.fsService.handleHeartbeat(msg.meta.uid);
   }
-  @MessagePattern('env.shutdown', Transport.REDIS)
+  handleWatchEvent(event: FSExtEvent) {
+    this.fsService.handleEvent(event);
+  }
+  handleSyncEvent(msg: Message<FSDocSyncEvent>) {
+    this.syncService.handleFSUpdate(msg);
+  }
+  async handleSaveEvent(msg: Message<FSSaveRequest>) {
+    await this.syncService.handleFSSave(msg);
+  }
+
+  // TODO
+  @MessagePattern(`env.shutdown`, Transport.RMQ)
   shutdown() {
     this.fsService.dispose();
   }
-
   @MessagePattern('env.fs.open', Transport.REDIS)
   async fsOpen(@Payload() msg: Message<FSOpenRequest>) {
     const path = this.root + msg.payload.path;
@@ -58,18 +111,5 @@ export class GatewayController {
       console.log(err);
       return;
     }
-  }
-  @EventPattern('env.fs.watch', Transport.REDIS)
-  handleEvent(@Payload() event: FSExtEvent) {
-    this.fsService.handleEvent(event);
-  }
-
-  @EventPattern('env.fs.sync', Transport.REDIS)
-  handleFSUpdate(@Payload() msg: Message<FSDocSyncEvent>) {
-    this.syncService.handleFSUpdate(msg);
-  }
-  @EventPattern('env.fs.save', Transport.REDIS)
-  async handleFSSave(@Payload() msg: Message<FSSaveRequest>) {
-    await this.syncService.handleFSSave(msg);
   }
 }
