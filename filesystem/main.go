@@ -1,14 +1,16 @@
+//go:build linux
+
 package main
 
 import (
 	"context"
 	"fmt"
 	"hideenv/filesystem/handlers"
+	"hideenv/filesystem/server"
 	"hideenv/filesystem/services"
 	"log"
+	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -34,9 +36,14 @@ func main() {
 	go handlers.HandleWatchChannels(ctx, wm, redisClient)
 	log.Println("Service started")
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
+	srv := server.NewServer()
+	port := os.Getenv("SERVICE_PORT")
+	if port == "" {
+		port = "8945"
+	}
+	log.Println("Server is running on port", port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), srv.Router))
+
 	wm.Watcher.Close()
 	log.Println("Service stopped")
 }

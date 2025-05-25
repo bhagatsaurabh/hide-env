@@ -25,7 +25,6 @@ export class SyncService {
   constructor(@Inject('FILESYSTEM_SERVICE_REDIS') private redis: ClientProxy) {}
 
   docs = new Map<string, WSSharedDoc>();
-  uidToPath = new Map<string, Set<string>>();
   root = '/home/devuser/workspace';
 
   openFile(uid: string, path: string) {
