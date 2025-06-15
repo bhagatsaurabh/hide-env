@@ -36,10 +36,14 @@ type WatchEvent struct {
 	Ino         *uint64 `json:"ino,omitempty"`
 	Type        string  `json:"type"`
 }
+type WatchEventPayload struct {
+	Event WatchEvent `json:"event"`
+	Uuid  string     `json:"uuid"`
+}
 type WatchChannelPayload struct {
-	Service string     `json:"service"`
-	Action  string     `json:"action"`
-	Payload WatchEvent `json:"payload"`
+	Service string            `json:"service"`
+	Action  string            `json:"action"`
+	Payload WatchEventPayload `json:"payload"`
 }
 type WatchChannelMessage struct {
 	Payload WatchChannelPayload `json:"payload"`
@@ -140,11 +144,14 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 		Payload: WatchChannelPayload{
 			Service: "internal",
 			Action:  "workspace.watch",
-			Payload: WatchEvent{
-				WatchedPath: watchedPath,
-				Action:      action,
-				Path:        event.Name,
-				Timestamp:   time.Now().Unix(),
+			Payload: WatchEventPayload{
+				Uuid: uuid,
+				Event: WatchEvent{
+					WatchedPath: watchedPath,
+					Action:      action,
+					Path:        event.Name,
+					Timestamp:   time.Now().Unix(),
+				},
 			},
 		},
 	}
@@ -153,11 +160,11 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 		info, err := os.Lstat(event.Name)
 		if err == nil {
 			if stat, ok := info.Sys().(*syscall.Stat_t); ok {
-				msg.Payload.Payload.Ino = &stat.Ino
+				msg.Payload.Payload.Event.Ino = &stat.Ino
 				if info.IsDir() {
-					msg.Payload.Payload.Type = "dir"
+					msg.Payload.Payload.Event.Type = "dir"
 				} else {
-					msg.Payload.Payload.Type = "file"
+					msg.Payload.Payload.Event.Type = "file"
 				}
 			}
 		}
@@ -166,7 +173,7 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 	sepIndex := strings.Index(eventStr, "←")
 	if sepIndex != -1 {
 		oldPath := eventStr[sepIndex+5 : len(eventStr)-1]
-		msg.Payload.Payload.OldPath = oldPath
+		msg.Payload.Payload.Event.OldPath = oldPath
 	}
 
 	sMsg, err := json.Marshal(msg)
