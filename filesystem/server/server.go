@@ -13,7 +13,11 @@ type Server struct {
 
 func NewServer() *Server {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/provision", handlers.StatHandler)
+	mux.HandleFunc("/api/stat", handlers.StatHandler)
+	mux.HandleFunc("/api/dir", handlers.DirHandler)
+	mux.HandleFunc("/api/hash", handlers.HashHandler)
+	mux.HandleFunc("/api/read", handlers.ReadHandler)
+	mux.HandleFunc("/api/write", handlers.WriteHandler)
 
 	return &Server{Router: mux}
 }
