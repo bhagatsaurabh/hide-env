@@ -14,14 +14,8 @@ RUN echo "PermitRootLogin no" >> /etc/ssh/sshd_config \
   && echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config \
   && echo "AuthorizedKeysFile /home/devuser/.ssh/authorized_keys" >> /etc/ssh/sshd_config \
   && echo "AllowUsers devuser" >> /etc/ssh/sshd_config
-RUN echo '#!/bin/sh' > /entrypoint.sh \
-  && echo 'mkdir -p /home/devuser/.ssh' >> /entrypoint.sh \
-  && echo 'echo "$SSH_PUBLIC_KEY" > /home/devuser/.ssh/authorized_keys' >> /entrypoint.sh \
-  && echo 'chown -R devuser:devuser /home/devuser/.ssh' >> /entrypoint.sh \
-  && echo 'chmod 600 /home/devuser/.ssh/authorized_keys' >> /entrypoint.sh \
-  && echo 'passwd -u devuser' >> /entrypoint.sh \
-  && echo '/usr/bin/supervisord -c /etc/supervisord.conf' >> /entrypoint.sh \
-  && chmod +x /entrypoint.sh
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 WORKDIR /app
 ENV PATH="/usr/local/go/bin:/root/go/bin:${PATH}"
 
@@ -31,6 +25,7 @@ RUN cd ./env-gateway && npm ci
 COPY filesystem ./filesystem
 RUN go install github.com/air-verse/air@latest
 COPY envs/supervisord-dev.conf /etc/supervisord.conf
+
 EXPOSE 22
 ENTRYPOINT ["/entrypoint.sh"]
 
@@ -45,5 +40,6 @@ COPY --from=builder /app/env-gateway/package.json ./env-gateway/package.json
 COPY --from=builder /app/env-gateway/package-lock.json ./env-gateway/package-lock.json
 COPY --from=builder /app/env-gateway/node_modules ./env-gateway/node_modules
 COPY envs/supervisord.conf /etc/supervisord.conf
+
 EXPOSE 22
 ENTRYPOINT ["/entrypoint.sh"]
