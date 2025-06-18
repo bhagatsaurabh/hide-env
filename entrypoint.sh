@@ -15,4 +15,5 @@ fi
 chown -R devuser:devuser /home/devuser/.ssh
 chmod 600 /home/devuser/.ssh/authorized_keys
 passwd -u devuser
+
 /usr/bin/supervisord -c /etc/supervisord.conf

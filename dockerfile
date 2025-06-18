@@ -25,6 +25,7 @@ RUN cd ./env-gateway && npm ci
 COPY filesystem ./filesystem
 RUN go install github.com/air-verse/air@latest
 COPY envs/supervisord-dev.conf /etc/supervisord.conf
+
 EXPOSE 22
 ENTRYPOINT ["/entrypoint.sh"]
 
