@@ -1,0 +1,15 @@
+FROM hide-env-base-dev AS development
+
+RUN mkdir /home/devuser/workspace
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+EXPOSE 22
+ENTRYPOINT ["/entrypoint.sh"]
+
+FROM hide-env-base AS production
+
+RUN mkdir /home/devuser/workspace
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+EXPOSE 22
+ENTRYPOINT ["/entrypoint.sh"]

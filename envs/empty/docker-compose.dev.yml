@@ -5,9 +5,9 @@ networks:
 
 name: hide-env
 services:
-  node:
-    container_name: node
-    image: hide-env-node-dev
+  default:
+    container_name: default
+    image: hide-env-dev
     build:
       context: .
       target: development
@@ -21,6 +21,6 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - EVENT_QUEUE_SIZE=100
-      - WS_UUID=nodejs
+      - WS_UUID=default
     networks:
       - hide-network
