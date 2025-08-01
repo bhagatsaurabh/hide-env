@@ -36,7 +36,7 @@ func main() {
 	go handlers.HandleWatchChannels(ctx, wm, redisClient)
 	log.Println("Service started")
 
-	srv := server.NewServer()
+	srv := server.NewServer(wm)
 	port := os.Getenv("SERVICE_PORT")
 	if port == "" {
 		port = "8945"

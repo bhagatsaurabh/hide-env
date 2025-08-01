@@ -20,14 +20,6 @@ var (
 	RemoveWatchChannel = fmt.Sprintf("workspace.%s.watch.remove", uuid)
 )
 
-type AffineRequestData struct {
-	EnvInstanceId string `json:"envInstanceId"`
-}
-type AffineRequest struct {
-	Pattern string            `json:"pattern"`
-	Data    AffineRequestData `json:"data"`
-}
-
 type WatchRequestData struct {
 	Path string `json:"path"`
 }
@@ -46,13 +38,6 @@ func HandleWatchChannels(ctx context.Context, wm *services.WatchManager, redis *
 
 	for msg := range pubsub.Channel() {
 		switch msg.Channel {
-		case AffineChannel:
-			var req AffineRequest
-			if err := json.Unmarshal([]byte(msg.Payload), &req); err != nil {
-				log.Println("Parse error, affine payload:", err)
-				continue
-			}
-			wm.EnvInstanceId = req.Data.EnvInstanceId
 		case AddWatchChannel:
 			var req AddWatchRequest
 			if err := json.Unmarshal([]byte(msg.Payload), &req); err != nil {

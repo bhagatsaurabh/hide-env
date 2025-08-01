@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	uuidv4 "github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -48,6 +49,10 @@ type WatchChannelPayload struct {
 type WatchChannelMessage struct {
 	Payload WatchChannelPayload `json:"payload"`
 }
+type InternalMessage[T any] struct {
+	Id   string `json:"id"`
+	Data T      `json:"data"`
+}
 
 var uuid = os.Getenv("WS_UUID")
 
@@ -79,6 +84,7 @@ func (wm *WatchManager) AddWatch(watchPath string) error {
 		return err
 	}
 	wm.Paths[watchPath] = true
+	log.Println("Watcher added:", watchPath)
 	return nil
 }
 
@@ -97,6 +103,7 @@ func (wm *WatchManager) RemoveWatch(watchPath string) error {
 		return err
 	}
 	delete(wm.Paths, watchPath)
+	log.Println("Watcher removed:", watchPath)
 	return nil
 }
 
@@ -140,17 +147,20 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 		action = "write"
 	}
 
-	msg := WatchChannelMessage{
-		Payload: WatchChannelPayload{
-			Service: "internal",
-			Action:  "workspace.watch",
-			Payload: WatchEventPayload{
-				Uuid: uuid,
-				Event: WatchEvent{
-					WatchedPath: watchedPath,
-					Action:      action,
-					Path:        event.Name,
-					Timestamp:   time.Now().Unix(),
+	msg := InternalMessage[WatchChannelMessage]{
+		Id: uuidv4.NewString(),
+		Data: WatchChannelMessage{
+			Payload: WatchChannelPayload{
+				Service: "internal",
+				Action:  "workspace.watch",
+				Payload: WatchEventPayload{
+					Uuid: uuid,
+					Event: WatchEvent{
+						WatchedPath: watchedPath,
+						Action:      action,
+						Path:        event.Name,
+						Timestamp:   time.Now().Unix(),
+					},
 				},
 			},
 		},
@@ -160,11 +170,11 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 		info, err := os.Lstat(event.Name)
 		if err == nil {
 			if stat, ok := info.Sys().(*syscall.Stat_t); ok {
-				msg.Payload.Payload.Event.Ino = &stat.Ino
+				msg.Data.Payload.Payload.Event.Ino = &stat.Ino
 				if info.IsDir() {
-					msg.Payload.Payload.Event.Type = "dir"
+					msg.Data.Payload.Payload.Event.Type = "dir"
 				} else {
-					msg.Payload.Payload.Event.Type = "file"
+					msg.Data.Payload.Payload.Event.Type = "file"
 				}
 			}
 		}
@@ -173,7 +183,7 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 	sepIndex := strings.Index(eventStr, "←")
 	if sepIndex != -1 {
 		oldPath := eventStr[sepIndex+5 : len(eventStr)-1]
-		msg.Payload.Payload.Event.OldPath = oldPath
+		msg.Data.Payload.Payload.Event.OldPath = oldPath
 	}
 
 	sMsg, err := json.Marshal(msg)
@@ -183,4 +193,6 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 	}
 
 	wm.Redis.Publish(ctx, fmt.Sprintf("env.%s", wm.EnvInstanceId), sMsg)
+
+	log.Println("Watch event to:", fmt.Sprintf("env.%s", wm.EnvInstanceId), ":", string(sMsg))
 }
