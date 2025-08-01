@@ -16,7 +16,7 @@ chown -R devuser:devuser /home/devuser/.ssh
 chmod 600 /home/devuser/.ssh/authorized_keys
 passwd -u devuser
 
-CONFIG_PATH="/home/devuser/workspace/devconfig.json"
+CONFIG_PATH="/workspace/devconfig.json"
 configure_workspace() {
   if [ ! -f "$CONFIG_PATH" ]; then
     echo "[WARN] No devconfig.json found at $CONFIG_PATH"

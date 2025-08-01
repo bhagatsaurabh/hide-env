@@ -18,7 +18,7 @@ if grep -q '^devuser:!' /etc/shadow; then
   passwd -u devuser
 fi
 
-CONFIG_PATH="/home/devuser/workspace/devconfig.json"
+CONFIG_PATH="/workspace/devconfig.json"
 configure_workspace() {
   if [ ! -f "$CONFIG_PATH" ]; then
     echo "[WARN] No devconfig.json found at $CONFIG_PATH"
