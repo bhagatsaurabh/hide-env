@@ -22,6 +22,7 @@ func NewServer(wm *services.WatchManager) *Server {
 	mux.HandleFunc("/api/hash", handlers.HashHandler)
 	mux.HandleFunc("/api/read", handlers.ReadHandler)
 	mux.HandleFunc("/api/write", handlers.WriteHandler)
+	mux.HandleFunc("/api/command", handlers.CommandHandler)
 	mux.HandleFunc("/api/affine", func(w http.ResponseWriter, r *http.Request) {
 		handlers.AffineHandler(w, r, wm)
 	})
