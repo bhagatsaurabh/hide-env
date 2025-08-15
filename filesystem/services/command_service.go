@@ -3,7 +3,9 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
+	"log"
 	"os"
 	"os/exec"
 )
@@ -22,40 +24,41 @@ type NewFolderDTO struct {
 func RunCommand(cmdReq CommandReqDTO) error {
 	switch cmdReq.Command {
 	case "file.new":
-		{
-			data, ok := cmdReq.Data.(NewFileDTO)
-			if !ok {
-				return errors.New("Invalid command data")
-			}
+		log.Println("file.new")
+		var ctx NewFileDTO
+		jsonBytes, _ := json.Marshal(cmdReq.Data)
+		json.Unmarshal(jsonBytes, &ctx)
 
-			file, err := os.Create(data.Path)
-			if err != nil {
-				return errors.New("Cannot create file")
-			}
-			defer file.Close()
-			break
+		ctx.Path = "/workspace" + ctx.Path
+
+		log.Println(ctx.Path)
+		file, err := os.Create(ctx.Path)
+		log.Println("Done")
+		if err != nil {
+			return errors.New("Cannot create file")
 		}
+		log.Println("Almost")
+		defer file.Close()
+		log.Println("Over")
 	case "folder.new":
-		{
-			data, ok := cmdReq.Data.(NewFolderDTO)
-			if !ok {
-				return errors.New("Invalid command data")
-			}
 
-			err := os.Mkdir(data.Path, 0755)
-			if err != nil {
-				if os.IsExist(err) {
-					return errors.New("Directory already exists")
-				} else {
-					return errors.New("Cannot create directory")
-				}
+		var ctx NewFolderDTO
+		jsonBytes, _ := json.Marshal(cmdReq.Data)
+		json.Unmarshal(jsonBytes, &ctx)
+
+		ctx.Path = "/workspace" + ctx.Path
+
+		err := os.Mkdir(ctx.Path, 0755)
+		if err != nil {
+			if os.IsExist(err) {
+				return errors.New("Directory already exists")
 			} else {
-				exec.Command("chown", "-R", "devuser:devuser", data.Path)
+				return errors.New("Cannot create directory")
 			}
-			break
+		} else {
+			exec.Command("chown", "-R", "devuser:devuser", ctx.Path)
 		}
-	default:
-		break
 	}
+	log.Println("Returning")
 	return nil
 }
