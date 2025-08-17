@@ -56,7 +56,10 @@ func RunCommand(cmdReq CommandReqDTO) error {
 				return errors.New("Cannot create directory")
 			}
 		} else {
-			exec.Command("chown", "-R", "devuser:devuser", ctx.Path)
+			cmd := exec.Command("chown", "-R", "devuser:devuser", ctx.Path)
+			if err := cmd.Run(); err != nil {
+				return errors.New("Failed to set new directory permissions")
+			}
 		}
 	}
 	log.Println("Returning")
