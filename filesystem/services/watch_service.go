@@ -159,7 +159,7 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 						WatchedPath: watchedPath,
 						Action:      action,
 						Path:        event.Name,
-						Timestamp:   time.Now().Unix(),
+						Timestamp:   time.Now().UnixMilli(),
 					},
 				},
 			},
@@ -194,5 +194,7 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 
 	wm.Redis.Publish(ctx, fmt.Sprintf("env.%s", wm.EnvInstanceId), sMsg)
 
-	log.Println("Watch event to:", fmt.Sprintf("env.%s", wm.EnvInstanceId), ":", string(sMsg))
+	if wm.EnvInstanceId == "" {
+		log.Println("Event without destination")
+	}
 }

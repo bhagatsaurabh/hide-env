@@ -1,19 +1,11 @@
 //go:build linux
 
-/* var req AffineRequest
-log.Println("Got affine request")
-if err := json.Unmarshal([]byte(msg.Payload), &req); err != nil {
-	log.Println("Parse error, affine payload:", err)
-	continue
-}
-
-log.Println(wm.EnvInstanceId) */
-
 package handlers
 
 import (
 	"hideenv/filesystem/services"
 	"hideenv/filesystem/util"
+	"log"
 	"net/http"
 )
 
@@ -28,6 +20,7 @@ func AffineHandler(w http.ResponseWriter, r *http.Request, wm *services.WatchMan
 		return
 	}
 
+	log.Println("Got affine request", envId)
 	wm.EnvInstanceId = envId
 
 	w.WriteHeader(http.StatusOK)

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"hideenv/filesystem/services"
 	"hideenv/filesystem/util"
-	"log"
 	"net/http"
 )
 
@@ -23,7 +22,6 @@ func CommandHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(commandReq.Command, commandReq.Data)
 	err = services.RunCommand(commandReq)
 
 	if err != nil {
