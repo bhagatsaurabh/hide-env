@@ -5,7 +5,6 @@ package services
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"os"
 	"os/exec"
 )
@@ -24,22 +23,17 @@ type NewFolderDTO struct {
 func RunCommand(cmdReq CommandReqDTO) error {
 	switch cmdReq.Command {
 	case "file.new":
-		log.Println("file.new")
 		var ctx NewFileDTO
 		jsonBytes, _ := json.Marshal(cmdReq.Data)
 		json.Unmarshal(jsonBytes, &ctx)
 
 		ctx.Path = "/workspace" + ctx.Path
 
-		log.Println(ctx.Path)
 		file, err := os.Create(ctx.Path)
-		log.Println("Done")
 		if err != nil {
 			return errors.New("Cannot create file")
 		}
-		log.Println("Almost")
 		defer file.Close()
-		log.Println("Over")
 	case "folder.new":
 
 		var ctx NewFolderDTO
@@ -62,6 +56,5 @@ func RunCommand(cmdReq CommandReqDTO) error {
 			}
 		}
 	}
-	log.Println("Returning")
 	return nil
 }
