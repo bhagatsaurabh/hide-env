@@ -13,7 +13,12 @@ type WriteDTO struct {
 func WriteContent(path string, writeReq WriteDTO) error {
 	content := []byte(writeReq.Content)
 
-	err := os.WriteFile(path, content, 0777)
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
+
+	err = os.WriteFile(path, content, 0777)
 	if err != nil {
 		return err
 	}
