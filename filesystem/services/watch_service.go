@@ -171,11 +171,11 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 		if err == nil {
 			if stat, ok := info.Sys().(*syscall.Stat_t); ok {
 				msg.Data.Payload.Payload.Event.Ino = &stat.Ino
-				if info.IsDir() {
-					msg.Data.Payload.Payload.Event.Type = "dir"
-				} else {
-					msg.Data.Payload.Payload.Event.Type = "file"
-				}
+			}
+			if info.IsDir() {
+				msg.Data.Payload.Payload.Event.Type = "dir"
+			} else {
+				msg.Data.Payload.Payload.Event.Type = "file"
 			}
 		}
 	}
