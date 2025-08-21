@@ -24,7 +24,6 @@ type WatchManager struct {
 	Watcher       *fsnotify.Watcher
 	Redis         *redis.Client
 	Mu            sync.Mutex
-	Paths         map[string]bool
 	EnvInstanceId string
 }
 
@@ -64,7 +63,6 @@ func NewWatchManager(redis *redis.Client) (*WatchManager, error) {
 	wm := &WatchManager{
 		Watcher: watcher,
 		Redis:   redis,
-		Paths:   make(map[string]bool),
 	}
 	return wm, nil
 }
@@ -74,7 +72,7 @@ func (wm *WatchManager) AddWatch(watchPath string) error {
 	defer wm.Mu.Unlock()
 
 	watchPath = path.Clean(watchPath)
-	if wm.Paths[watchPath] {
+	if isWatched(wm.Watcher, watchPath) {
 		return nil
 	}
 
@@ -83,7 +81,7 @@ func (wm *WatchManager) AddWatch(watchPath string) error {
 		log.Println("Failed to add watcher:", err)
 		return err
 	}
-	wm.Paths[watchPath] = true
+
 	log.Println("Watcher added:", watchPath)
 	return nil
 }
@@ -93,16 +91,16 @@ func (wm *WatchManager) RemoveWatch(watchPath string) error {
 	defer wm.Mu.Unlock()
 
 	watchPath = path.Clean(watchPath)
-	if !wm.Paths[watchPath] {
+	if !isWatched(wm.Watcher, watchPath) {
 		return nil
 	}
 
+	wm.Watcher.WatchList()
 	err := wm.Watcher.Remove(watchPath)
 	if err != nil {
 		log.Println("Failed to remove watcher:", err)
-		return err
 	}
-	delete(wm.Paths, watchPath)
+
 	log.Println("Watcher removed:", watchPath)
 	return nil
 }
@@ -197,4 +195,13 @@ func (wm *WatchManager) processEvent(ctx context.Context, event fsnotify.Event) 
 	if wm.EnvInstanceId == "" {
 		log.Println("Event without destination")
 	}
+}
+
+func isWatched(w *fsnotify.Watcher, path string) bool {
+	for _, p := range w.WatchList() {
+		if p == path {
+			return true
+		}
+	}
+	return false
 }
