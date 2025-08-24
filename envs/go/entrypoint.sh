@@ -19,12 +19,9 @@ if grep -q '^devuser:!' /etc/shadow; then
   passwd -u devuser
 fi
 
-# Stack default extra packages
-apk add nodejs npm yarn pnpm
-
 # Stack specific setup
-su - devuser -c "npm config set prefix /home/devuser/.npm-global"
-echo 'export PATH=$PATH:/home/devuser/.npm-global/bin' >> /home/devuser/.profile
+echo 'export PATH=$PATH:/usr/local/go/bin:/home/devuser/go/bin' >> /home/devuser/.profile
+echo 'export GOPATH=/home/devuser/go' >> /home/devuser/.profile
 
 # Stack custom extra packages & deps
 CONFIG_PATH="/workspace/devconfig.json"
@@ -38,12 +35,6 @@ configure_workspace() {
   apk_pkgs=$(jq -r '.packages[]?' "$CONFIG_PATH" 2>/dev/null || true)
   if [ -n "$apk_pkgs" ]; then
     apk update && apk add --no-cache $apk_pkgs || echo "[WARN] Failed to install some packages"
-  fi
-
-  # Install global npm dependencies
-  dependencies=$(jq -r '.dependencies[]?' "$CONFIG_PATH" 2>/dev/null || true)
-  if [ -n "$dependencies" ]; then
-    npm install -g $dependencies || echo "[WARN] Failed to install some global npm dependencies"
   fi
 }
 configure_workspace >>/var/log/configurer.log 2>&1 &

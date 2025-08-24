@@ -1,6 +1,14 @@
 #!/bin/sh
 set -e
 
+VENV_PATH=/workspace/.venv
+
+if [ ! -d "$VENV_PATH" ]; then
+    python3 -m venv "$VENV_PATH"
+fi
+
+. "$VENV_PATH/bin/activate"
+
 # SSH Setup
 mkdir -p /home/devuser/.ssh
 
@@ -20,11 +28,10 @@ if grep -q '^devuser:!' /etc/shadow; then
 fi
 
 # Stack default extra packages
-apk add nodejs npm yarn pnpm
+apk add python3 py3-pip
 
 # Stack specific setup
-su - devuser -c "npm config set prefix /home/devuser/.npm-global"
-echo 'export PATH=$PATH:/home/devuser/.npm-global/bin' >> /home/devuser/.profile
+echo 'export PATH=$PATH:/home/devuser/.local/bin' >> /home/devuser/.profile
 
 # Stack custom extra packages & deps
 CONFIG_PATH="/workspace/devconfig.json"
@@ -40,10 +47,11 @@ configure_workspace() {
     apk update && apk add --no-cache $apk_pkgs || echo "[WARN] Failed to install some packages"
   fi
 
-  # Install global npm dependencies
+  # Install python libraries
   dependencies=$(jq -r '.dependencies[]?' "$CONFIG_PATH" 2>/dev/null || true)
+  pip install --upgrade pip
   if [ -n "$dependencies" ]; then
-    npm install -g $dependencies || echo "[WARN] Failed to install some global npm dependencies"
+    pip install $dependencies || echo "[WARN] Failed to install some python libraries"
   fi
 }
 configure_workspace >>/var/log/configurer.log 2>&1 &

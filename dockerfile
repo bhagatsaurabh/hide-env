@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM alpine:latest AS base
 
 RUN wget https://go.dev/dl/go1.24.2.linux-amd64.tar.gz \
   && tar -C /usr/local -xzf go1.24.2.linux-amd64.tar.gz \

@@ -1,0 +1,25 @@
+networks:
+  hide-network:
+    name: hide-server_hide-network
+    external: true
+
+name: hide-env
+services:
+  golang:
+    container_name: golang
+    image: hide-env-go-dev
+    build:
+      context: .
+      target: development
+    volumes:
+      - ../../filesystem:/app/filesystem
+      - /app/filesystem/.build
+    environment:
+      - SERVICE_PORT=80
+      - RMQ_URL=amqp://rabbitmq:5672
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - EVENT_QUEUE_SIZE=100
+      - WS_UUID=golang
+    networks:
+      - hide-network

@@ -24,6 +24,7 @@ apk add nodejs npm yarn pnpm
 
 # Stack specific setup
 su - devuser -c "npm config set prefix /home/devuser/.npm-global"
+su - devuser -c "npm i -g @nestjs/cli"
 echo 'export PATH=$PATH:/home/devuser/.npm-global/bin' >> /home/devuser/.profile
 
 # Stack custom extra packages & deps
