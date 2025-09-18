@@ -1,17 +1,15 @@
-FROM hide-env-base-dev AS development
+FROM hide-env-base AS base
 
-RUN mkdir /workspace
-RUN chown -R devuser:devuser /workspace
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN mkdir /workspace \
+  && chown -R devuser:devuser /workspace
+
+COPY motd /etc/motd
+WORKDIR /workspace
+
 EXPOSE 22
 ENTRYPOINT ["/entrypoint.sh"]
 
-FROM hide-env-base AS production
+FROM base AS development
 
-RUN mkdir /workspace
-RUN chown -R devuser:devuser /workspace
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-EXPOSE 22
-ENTRYPOINT ["/entrypoint.sh"]
+
+FROM base AS production
