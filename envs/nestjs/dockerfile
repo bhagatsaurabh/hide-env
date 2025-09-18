@@ -3,10 +3,11 @@ FROM hide-env-base AS base
 RUN mkdir /workspace \
   && chown -R devuser:devuser /workspace
 
-RUN apk add --no-cache nodejs npm
+RUN apk add nodejs npm yarn pnpm
 
 USER devuser
-RUN npm config set prefix /home/devuser/.npm-global
+RUN && npm config set prefix /home/devuser/.npm-global \
+  && npm i -g @nestjs/cli
 USER root
 
 RUN echo 'export PATH=$PATH:/home/devuser/.npm-global/bin' >> /home/devuser/.profile
