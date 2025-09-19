@@ -4,11 +4,11 @@ set -e
 # SSH Setup
 mkdir -p /home/devuser/.ssh
 
-if [ -f /devconfig/authorized_keys ]; then
-  cp /devconfig/authorized_keys /home/devuser/.ssh/authorized_keys
+if [ -f /config/authorized_keys ]; then
+  cp /config/authorized_keys /home/devuser/.ssh/authorized_keys
 elif [ -n "$SSH_PUBLIC_KEY" ]; then
   echo "$SSH_PUBLIC_KEY" >/home/devuser/.ssh/authorized_keys
-  echo "$SSH_PUBLIC_KEY" >/devconfig/authorized_keys
+  echo "$SSH_PUBLIC_KEY" >/config/authorized_keys
 else
   echo "[WARN] No SSH key provided"
 fi
