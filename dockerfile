@@ -28,7 +28,7 @@ FROM golang:1.24-alpine AS development
 WORKDIR /app
 COPY filesystem ./filesystem
 RUN go install github.com/air-verse/air@v1.62.0
-COPY envs/supervisord-dev.conf /etc/supervisord.conf
+COPY supervisord-dev.conf /etc/supervisord.conf
 COPY --from=base / /
 
 EXPOSE 22
@@ -44,7 +44,7 @@ RUN go build -o /main .
 FROM base AS production
 
 COPY --from=build /main /app/.build/main
-COPY envs/supervisord.conf /etc/supervisord.conf
+COPY supervisord.conf /etc/supervisord.conf
 
 EXPOSE 22
 ENTRYPOINT ["/entrypoint.sh"]
