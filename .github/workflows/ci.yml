@@ -99,7 +99,7 @@ jobs:
           push: true
           platforms: linux/arm64
           tags: |
-            ${{ secrets.REGISTRY_LOGIN_SERVER }}/hide-server-${{ matrix.image }}:latest
+            ${{ secrets.REGISTRY_LOGIN_SERVER }}/hide-env-base:latest
 
   build:
     needs: [changes, prepare, build-base]
