@@ -3,7 +3,7 @@ FROM hideregistry.azurecr.io/hide-env-base AS base
 RUN mkdir /workspace \
   && chown -R devuser:devuser /workspace
 
-RUN apk add --no-cache nodejs npm
+RUN apk add --no-cache nodejs npm yarn pnpm
 
 USER devuser
 RUN npm config set prefix /home/devuser/.npm-global
