@@ -54,6 +54,7 @@ jobs:
               - "!envs/php/**"
               - "!envs/python/**"
               - "!envs/rust/**"
+          predicate-quantifier: "every"
 
   prepare:
     needs: changes
