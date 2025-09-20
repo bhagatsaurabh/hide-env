@@ -41,7 +41,11 @@ jobs:
             rust:
               - "envs/rust/**"
             base:
-              - "envs/**"
+              - "filesystem/**"
+              - "dockerfile"
+              - "entrypoint.sh"
+              - "motd"
+              - "supervisord.conf"
               - "!envs/deno/**"
               - "!envs/empty/**"
               - "!envs/go/**"
