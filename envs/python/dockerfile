@@ -12,9 +12,6 @@ RUN apk add python3 py3-pip \
 COPY motd /etc/motd
 WORKDIR /workspace
 
-EXPOSE 22
-ENTRYPOINT ["/entrypoint.sh"]
-
 FROM base AS development
 
 

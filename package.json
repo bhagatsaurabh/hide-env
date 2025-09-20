@@ -2,8 +2,8 @@
   "scripts": {
     "devbuild:base": "docker build -f dockerfile --target development -t hide-env-base:dev .",
     "build:base": "docker build -f dockerfile --target production -t hide-env-base .",
-    "devbuild:empty": "cd envs/empty && docker build -t hide-env:dev --target development .",
-    "build:empty": "cd envs/empty && docker build -t hide-env --target production .",
+    "devbuild:empty": "cd envs/empty && docker build -t hide-env-empty:dev --target development .",
+    "build:empty": "cd envs/empty && docker build -t hide-env-empty --target production .",
     "devbuild:node": "cd envs/nodejs && docker build -t hide-env-node:dev --target development .",
     "build:node": "cd envs/nodejs && docker build -t hide-env-node --target production .",
     "devbuild:python": "cd envs/python && docker build -t hide-env-python:dev --target development .",

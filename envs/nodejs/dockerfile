@@ -14,9 +14,6 @@ RUN echo 'export PATH=$PATH:/home/devuser/.npm-global/bin' >> /home/devuser/.pro
 COPY motd /etc/motd
 WORKDIR /workspace
 
-EXPOSE 22
-ENTRYPOINT ["/entrypoint.sh"]
-
 FROM base AS development
 
 
