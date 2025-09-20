@@ -113,11 +113,12 @@ jobs:
   build:
     needs: [changes, prepare, build-base]
     # runs-on: ubuntu-24.04-arm # not for private repos 😭
-    if: ${{ !contains(fromJSON(needs.prepare.outputs.images), 'base') && needs.changes.result == 'success' && needs.prepare.result == 'success' }}
     runs-on: arm64-env
     strategy:
       matrix:
         image: ${{ fromJSON(needs.prepare.outputs.images) }}
+        exclude:
+          - image: base
     steps:
       - uses: actions/checkout@v4
 
