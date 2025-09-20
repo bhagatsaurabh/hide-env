@@ -102,7 +102,7 @@ jobs:
             ${{ secrets.REGISTRY_LOGIN_SERVER }}/hide-env-base:latest
 
   build:
-    needs: [changes, prepare, build-base]
+    needs: [changes, prepare]
     # runs-on: ubuntu-24.04-arm # not for private repos 😭
     if: ${{ !contains(fromJSON(needs.prepare.outputs.images), 'base') && needs.changes.result == 'success' && needs.prepare.result == 'success' && (needs.build-base.result == 'success' || needs.build-base.result == 'skipped') }}
     runs-on: arm64-env
