@@ -1,4 +1,5 @@
-FROM hideregistry.azurecr.io/hide-env-base AS base
+ARG BASE_IMAGE=hideregistry.azurecr.io/hide-env-base
+FROM ${BASE_IMAGE} AS base
 
 RUN mkdir /workspace \
   && chown -R devuser:devuser /workspace

@@ -1,22 +1,22 @@
 {
   "scripts": {
     "devbuild:base": "docker build -f dockerfile --target development -t hide-env-base:dev .",
+    "devbuild:empty": "cd envs/empty && docker build --build-arg BASE_IMAGE=hide-env-base:dev -t hide-env-empty:dev --target development .",
+    "devbuild:node": "cd envs/nodejs && docker build --build-arg BASE_IMAGE=hide-env-base:dev -t hide-env-node:dev --target development .",
+    "devbuild:python": "cd envs/python && docker build --build-arg BASE_IMAGE=hide-env-base:dev -t hide-env-python:dev --target development .",
+    "devbuild:golang": "cd envs/go && docker build --build-arg BASE_IMAGE=hide-env-base:dev -t hide-env-go:dev --target development .",
+    "devbuild:nest": "cd envs/nestjs && docker build --build-arg BASE_IMAGE=hide-env-base:dev -t hide-env-nest:dev --target development .",
+    "devbuild:php": "cd envs/php && docker build --build-arg BASE_IMAGE=hide-env-base:dev -t hide-env-php:dev --target development .",
+    "devbuild:rust": "cd envs/rust && docker build --build-arg BASE_IMAGE=hide-env-base:dev -t hide-env-rust:dev --target development .",
+    "devbuild:deno": "cd envs/deno && docker build --build-arg BASE_IMAGE=hide-env-base:dev -t hide-env-deno:dev --target development .",
     "build:base": "docker build -f dockerfile --target production -t hide-env-base .",
-    "devbuild:empty": "cd envs/empty && docker build -t hide-env-empty:dev --target development .",
     "build:empty": "cd envs/empty && docker build -t hide-env-empty --target production .",
-    "devbuild:node": "cd envs/nodejs && docker build -t hide-env-node:dev --target development .",
     "build:node": "cd envs/nodejs && docker build -t hide-env-node --target production .",
-    "devbuild:python": "cd envs/python && docker build -t hide-env-python:dev --target development .",
     "build:python": "cd envs/python && docker build -t hide-env-python --target production .",
-    "devbuild:golang": "cd envs/go && docker build -t hide-env-go:dev --target development .",
     "build:golang": "cd envs/go && docker build -t hide-env-go --target production .",
-    "devbuild:nest": "cd envs/nestjs && docker build -t hide-env-nest:dev --target development .",
     "build:nest": "cd envs/nestjs && docker build -t hide-env-nest --target production .",
-    "devbuild:php": "cd envs/php && docker build -t hide-env-php:dev --target development .",
     "build:php": "cd envs/php && docker build -t hide-env-php --target production .",
-    "devbuild:rust": "cd envs/rust && docker build -t hide-env-rust:dev --target development .",
     "build:rust": "cd envs/rust && docker build -t hide-env-rust --target production .",
-    "devbuild:deno": "cd envs/deno && docker build -t hide-env-deno:dev --target development .",
     "build:deno": "cd envs/deno && docker build -t hide-env-deno --target production ."
   }
 }
