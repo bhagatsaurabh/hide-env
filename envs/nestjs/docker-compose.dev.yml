@@ -5,21 +5,27 @@ networks:
 
 name: hide-env
 services:
-  nest:
-    container_name: nest
-    image: hide-env-nest-dev
+  default:
+    container_name: default
+    image: hide-env-nest:dev
     build:
       context: .
       target: development
+      args:
+        BASE_IMAGE: hide-env-base:dev
     volumes:
       - ../../filesystem:/app/filesystem
       - /app/filesystem/.build
+      - type: bind
+        source: ../../test/test.key
+        target: /config/authorized_keys
     environment:
+      - NODE_ENV=development
       - SERVICE_PORT=80
       - RMQ_URL=amqp://rabbitmq:5672
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - EVENT_QUEUE_SIZE=100
-      - WS_UUID=nestjs
+      - WS_UUID=default
     networks:
       - hide-network

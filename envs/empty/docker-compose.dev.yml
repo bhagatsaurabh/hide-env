@@ -7,13 +7,18 @@ name: hide-env
 services:
   default:
     container_name: default
-    image: hide-env-dev
+    image: hide-env-empty:dev
     build:
       context: .
       target: development
+      args:
+        BASE_IMAGE: hide-env-base:dev
     volumes:
       - ../../filesystem:/app/filesystem
       - /app/filesystem/.build
+      - type: bind
+        source: ../../test/test.key
+        target: /config/authorized_keys
     environment:
       - NODE_ENV=development
       - SERVICE_PORT=80
