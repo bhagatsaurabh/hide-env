@@ -73,7 +73,7 @@ configure_workspace() {
     go)
       [ -n "$DEPS" ] && go install $DEPS
       ;;
-    nestjs|nodejs)
+    nest|node)
       [ -n "$DEPS" ] && npm install -g $DEPS
       ;;
     php)

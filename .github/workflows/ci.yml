@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       images:
-        description: "Comma-separated list of images to build (base, deno, empty, go, nestjs, nodejs, php, python, rust). Leave blank to use paths-filter."
+        description: "Comma-separated list of images to build (base, deno, empty, go, nest, node, php, python, rust). Leave blank to use paths-filter."
         required: false
         default: ""
   push:
@@ -30,10 +30,10 @@ jobs:
               - "envs/empty/**"
             go:
               - "envs/go/**"
-            nestjs:
-              - "envs/nestjs/**"
-            nodejs:
-              - "envs/nodejs/**"
+            nest:
+              - "envs/nest/**"
+            node:
+              - "envs/node/**"
             php:
               - "envs/php/**"
             python:
@@ -49,8 +49,8 @@ jobs:
               - "!envs/deno/**"
               - "!envs/empty/**"
               - "!envs/go/**"
-              - "!envs/nestjs/**"
-              - "!envs/nodejs/**"
+              - "!envs/nest/**"
+              - "!envs/node/**"
               - "!envs/php/**"
               - "!envs/python/**"
               - "!envs/rust/**"
