@@ -18,11 +18,11 @@ H-IDE Env workspace integrates with the H-IDE platform over a single service.
 
 This service handles affinity requests with the Env microservice, various IO operations and commands.
 
-[API Spec ☍](https://github.com/bhagatsaurabh/hide-server/blob/main/api/services/wsenv.openapi.yml)
-[Async Spec ☍](https://github.com/bhagatsaurabh/hide-server/blob/main/api/services/wsenv.asyncapi.yml)
+[API Spec ☍](https://github.com/bhagatsaurabh/hide-env/blob/main/api/services/wsenv.openapi.yml)
+[Async Spec ☍](https://github.com/bhagatsaurabh/hide-env/blob/main/api/services/wsenv.asyncapi.yml)
 
 <p align="center">
-<img alt="WSEnv Daemon" src="https://github.com/bhagatsaurabh/hide-server/blob/main/docs/wsenv.svg" width="300" />
+<img alt="WSEnv Daemon" src="https://github.com/bhagatsaurabh/hide-env/blob/main/docs/wsenv.svg" width="300" />
 </p>
 
 ## Development
