@@ -11,12 +11,12 @@ import (
 
 func StatHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		util.SendAPIErr(w, http.StatusMethodNotAllowed, "Method not allowed")
+		util.SendAPIErr(w, http.StatusMethodNotAllowed, "INVALID_REQUEST")
 		return
 	}
 	path := r.URL.Query().Get("path")
 	if path == "" {
-		util.SendAPIErr(w, http.StatusBadRequest, "Invalid request")
+		util.SendAPIErr(w, http.StatusBadRequest, "BAD_STAT_QUERY")
 		return
 	}
 
@@ -24,7 +24,7 @@ func StatHandler(w http.ResponseWriter, r *http.Request) {
 	err := services.GetStat(path, &statRes)
 
 	if err != nil {
-		util.SendAPIErr(w, http.StatusBadRequest, "Unknown error")
+		util.SendAPIErr(w, http.StatusBadRequest, "UNKNOWN")
 		return
 	}
 

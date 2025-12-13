@@ -1,0 +1,29 @@
+asyncapi: 2.6.0
+
+info:
+  title: Workspace Agent Messaging
+  version: 1.0.0
+  description: |
+    Filesystem watcher control for workspace agent.
+
+servers:
+  redis:
+    protocol: redis
+    url: redis://localhost:6379
+
+channels:
+  workspace.{uuid}.watch.add:
+    subscribe:
+      summary: Add fsnotify watcher
+      message:
+        payload:
+          allOf:
+            - $ref: "../schemas/watch-event.yml#/WatchEvent"
+
+  workspace.{uuid}.watch.remove:
+    subscribe:
+      summary: Remove fsnotify watcher
+      message:
+        payload:
+          allOf:
+            - $ref: "../schemas/watch-event.yml#/WatchEvent"

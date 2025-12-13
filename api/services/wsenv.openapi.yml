@@ -1,0 +1,292 @@
+openapi: 3.1.0
+
+info:
+  title: Workspace Daemon API
+  version: 1.0.0
+  description: |
+    Workspace-local daemon handling filesystem operations,
+    command execution, and Env affinity.
+
+servers:
+  - url: http://localhost:8080
+    description: Workspace-local agent
+
+tags:
+  - name: FS
+  - name: Command
+  - name: Env
+
+components:
+  schemas:
+    StatResponse:
+      allOf:
+        - $ref: "../schemas/stat-response.yml#/StatResponse"
+    DirEntry:
+      allOf:
+        - $ref: "../schemas/dir-entry.yml#/DirEntry"
+    HashResponse:
+      allOf:
+        - $ref: "../schemas/hash-response.yml#/HashResponse"
+    ReadResponse:
+      allOf:
+        - $ref: "../schemas/read-response.yml#/ReadResponse"
+    WriteRequest:
+      allOf:
+        - $ref: "../schemas/write-request.yml#/WriteRequest"
+    CommandRequest:
+      allOf:
+        - $ref: "../schemas/command-request.yml#/CommandRequest"
+    InvalidRequest:
+      allOf:
+        - $ref: "../schemas/errors.yml#/InvalidRequest"
+    UnknownError:
+      allOf:
+        - $ref: "../schemas/errors.yml#/UnknownError"
+    BadStatQuery:
+      allOf:
+        - $ref: "../schemas/errors.yml#/BadStatQuery"
+    BadDirQuery:
+      allOf:
+        - $ref: "../schemas/errors.yml#/BadDirQuery"
+    BadHashQuery:
+      allOf:
+        - $ref: "../schemas/errors.yml#/BadHashQuery"
+    BadReadQuery:
+      allOf:
+        - $ref: "../schemas/errors.yml#/BadReadQuery"
+    BadWriteQuery:
+      allOf:
+        - $ref: "../schemas/errors.yml#/BadWriteQuery"
+
+paths:
+  /stat:
+    get:
+      tags: [FS]
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadStatQuery"
+        "405":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidRequest"
+        "500":
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnknownError"
+
+  /dir:
+    get:
+      tags: [FS]
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DirEntry"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadDirQuery"
+        "405":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidRequest"
+        "500":
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnknownError"
+
+  /hash:
+    get:
+      tags: [FS]
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HashResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadHashQuery"
+        "405":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidRequest"
+        "500":
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnknownError"
+
+  /read:
+    get:
+      tags: [FS]
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadReadQuery"
+        "405":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidRequest"
+        "500":
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnknownError"
+
+  /write:
+    post:
+      tags: [FS]
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WriteRequest"
+      responses:
+        "202": { description: Accepted }
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BadWriteQuery"
+        "405":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidRequest"
+        "500":
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnknownError"
+
+  /command:
+    post:
+      tags: [Command]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommandRequest"
+      responses:
+        "202": { description: Accepted }
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidRequest"
+        "405":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidRequest"
+        "500":
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnknownError"
+
+  /affine:
+    get:
+      tags: [Env]
+      parameters:
+        - name: envId
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidRequest"
+        "405":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidRequest"
+        "500":
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnknownError"

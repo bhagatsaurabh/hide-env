@@ -1,0 +1,12 @@
+DirEntry:
+  type: object
+  required: [name, path, isDir, id]
+  properties:
+    name:
+      type: string
+    path:
+      type: string
+    isDir:
+      type: boolean
+    id:
+      type: number

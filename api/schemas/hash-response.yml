@@ -1,0 +1,6 @@
+HashResponse:
+  type: object
+  required: [hex]
+  properties:
+    hex:
+      type: string

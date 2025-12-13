@@ -11,12 +11,12 @@ import (
 
 func AffineHandler(w http.ResponseWriter, r *http.Request, wm *services.WatchManager) {
 	if r.Method != http.MethodGet {
-		util.SendAPIErr(w, http.StatusMethodNotAllowed, "Method not allowed")
+		util.SendAPIErr(w, http.StatusMethodNotAllowed, "INVALID_REQUEST")
 		return
 	}
 	envId := r.URL.Query().Get("envId")
 	if envId == "" {
-		util.SendAPIErr(w, http.StatusBadRequest, "Invalid request")
+		util.SendAPIErr(w, http.StatusBadRequest, "INVALID_REQUEST")
 		return
 	}
 
