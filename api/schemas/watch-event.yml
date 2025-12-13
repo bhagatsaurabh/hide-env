@@ -1,0 +1,12 @@
+WatchEvent:
+  type: object
+  required: [pattern, data]
+  properties:
+    pattern:
+      type: string
+    data:
+      type: object
+      required: [path]
+      properties:
+        path:
+          type: string

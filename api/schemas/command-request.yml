@@ -1,0 +1,9 @@
+CommandRequest:
+  type: object
+  required: [command]
+  properties:
+    command:
+      type: string
+    data:
+      type: object
+      additionalProperties: true

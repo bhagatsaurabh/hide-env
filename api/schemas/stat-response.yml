@@ -1,0 +1,12 @@
+StatResponse:
+  type: object
+  required: [name, size, isDir, ino]
+  properties:
+    name:
+      type: string
+    size:
+      type: number
+    isDir:
+      type: boolean
+    ino:
+      type: number

@@ -1,0 +1,6 @@
+ReadResponse:
+  type: object
+  required: [content]
+  properties:
+    content:
+      type: string

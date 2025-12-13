@@ -1,0 +1,69 @@
+ErrorBase:
+  type: object
+  required: [timestamp, status, message, path]
+  properties:
+    timestamp:
+      type: string
+      format: date-time
+    status:
+      type: integer
+    message:
+      type: string
+    path:
+      type: string
+InvalidRequest:
+  allOf:
+    - $ref: "#/ErrorBase"
+    - properties:
+        message:
+          const: "INVALID_REQUEST"
+        status:
+          const: 400
+UnknownError:
+  allOf:
+    - $ref: "#/ErrorBase"
+    - properties:
+        message:
+          const: "UNKNOWN"
+        status:
+          const: 500
+BadStatQuery:
+  allOf:
+    - $ref: "#/ErrorBase"
+    - properties:
+        message:
+          const: "BAD_STAT_QUERY"
+        status:
+          const: 400
+BadDirQuery:
+  allOf:
+    - $ref: "#/ErrorBase"
+    - properties:
+        message:
+          const: "BAD_DIR_QUERY"
+        status:
+          const: 400
+BadHashQuery:
+  allOf:
+    - $ref: "#/ErrorBase"
+    - properties:
+        message:
+          const: "BAD_HASH_QUERY"
+        status:
+          const: 400
+BadReadQuery:
+  allOf:
+    - $ref: "#/ErrorBase"
+    - properties:
+        message:
+          const: "BAD_READ_QUERY"
+        status:
+          const: 400
+BadWriteQuery:
+  allOf:
+    - $ref: "#/ErrorBase"
+    - properties:
+        message:
+          const: "BAD_WRITE_QUERY"
+        status:
+          const: 400
