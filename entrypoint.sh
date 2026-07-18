@@ -19,6 +19,11 @@ if grep -q '^devuser:!' /etc/shadow; then
   passwd -u devuser
 fi
 
+# Workspace ownership
+if [ "$(stat -c '%u:%g' /workspace)" != "$(id -u devuser):$(id -g devuser)" ]; then
+  chown -R devuser:devuser /workspace
+fi
+
 # Stack custom extra packages & deps
 CONFIG_PATH="/workspace/container.json"
 configure_workspace() {
