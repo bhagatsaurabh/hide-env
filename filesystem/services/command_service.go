@@ -5,6 +5,7 @@ package services
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"os"
 	"os/exec"
 )
@@ -31,6 +32,7 @@ func RunCommand(cmdReq CommandReqDTO) error {
 
 		file, err := os.Create(ctx.Path)
 		if err != nil {
+			log.Println("File creation error", err)
 			return errors.New("Cannot create file")
 		}
 		defer file.Close()
@@ -44,6 +46,7 @@ func RunCommand(cmdReq CommandReqDTO) error {
 
 		err := os.Mkdir(ctx.Path, 0755)
 		if err != nil {
+			log.Println("Directory op error", err)
 			if os.IsExist(err) {
 				return errors.New("Directory already exists")
 			} else {
@@ -52,6 +55,7 @@ func RunCommand(cmdReq CommandReqDTO) error {
 		} else {
 			cmd := exec.Command("chown", "-R", "devuser:devuser", ctx.Path)
 			if err := cmd.Run(); err != nil {
+				log.Println("Permission set error", err)
 				return errors.New("Failed to set new directory permissions")
 			}
 		}
