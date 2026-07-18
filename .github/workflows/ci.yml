@@ -75,7 +75,7 @@ jobs:
   build-base:
     needs: [changes, prepare]
     # runs-on: ubuntu-24.04-arm # not for private repos 😭
-    runs-on: arm64-env
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
         if: contains(fromJson(needs.prepare.outputs.images), 'base')
@@ -96,7 +96,7 @@ jobs:
 
       - name: Set up Docker Buildx
         if: contains(fromJson(needs.prepare.outputs.images), 'base')
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build and Push Image
         if: contains(fromJson(needs.prepare.outputs.images), 'base')
@@ -113,7 +113,7 @@ jobs:
   build:
     needs: [changes, prepare, build-base]
     # runs-on: ubuntu-24.04-arm # not for private repos 😭
-    runs-on: arm64-env
+    runs-on: ubuntu-24.04-arm
     strategy:
       matrix:
         image: ${{ fromJSON(needs.prepare.outputs.images) }}
