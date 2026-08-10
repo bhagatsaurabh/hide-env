@@ -39,7 +39,7 @@ npm run build:<imagename>
 
 ## Feedback
 
-Feel free to send any feedback on personal@saurabhagat.me
+Feel free to send any feedback on personal@saurabhagat.dev
 
 ## License
 
